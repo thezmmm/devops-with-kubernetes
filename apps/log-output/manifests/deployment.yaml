@@ -16,3 +16,8 @@ spec:
         - name: log-output
           image: log-output:latest
           imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080

@@ -67,6 +67,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.5`
 - [Exercise 1.6: Todo UI via NodePort](https://github.com/thezmmm/devops-with-kubernetes/tree/1.6/apps/todo-server)
 - Release tag: `1.6`
+- [Exercise 1.7: Log Output status endpoint and ingress](https://github.com/thezmmm/devops-with-kubernetes/tree/1.7/apps/log-output)
+- Release tag: `1.7`
 
 ## Notes
 
