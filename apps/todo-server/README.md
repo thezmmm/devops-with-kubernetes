@@ -33,17 +33,20 @@ If you run the command from inside `apps\todo-server`, use:
 kubectl apply -f .\manifests\deployment.yaml
 ```
 
-### Expose via NodePort
+### Expose via Ingress
 
 ```bash
 kubectl apply -f .\apps\todo-server\manifests\service.yaml
-kubectl get svc
+kubectl apply -f .\apps\todo-server\manifests\ingress.yaml
+kubectl get ingress
 ```
 
-The service exposes the app on a NodePort, using port `30080` on the cluster node. For local validation, you can browse:
+The service is kept as a ClusterIP, and the app is reached through the ingress controller using the host `todo-server.local`.
 
-```text
-http://localhost:30080/
+For local validation, you can use a Host header through the ingress entry point:
+
+```bash
+curl -H "Host: todo-server.local" http://localhost:32181/
 ```
 
-This is the NodePort-based access method required by the exercise. The app responds with HTML on `/`.
+This is the ingress-based access method required by the exercise. The app responds with HTML on `/`.
