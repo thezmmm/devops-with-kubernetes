@@ -31,16 +31,18 @@ devops-with-kubernetes/
 │   └── notes/
 ├── apps/
 │   ├── log-output/
-│   └── ...
-├── k8s/
-│   ├── log-output/
+│   │   ├── manifests/
+│   │   └── ...
+│   ├── todo-server/
+│   │   ├── manifests/
+│   │   └── ...
 │   └── ...
 ├── scripts/
 │   └── helpers/
 └── .github/
 ```
 
-Each application or exercise is kept in its own folder so that it is easy to test and submit.
+Each application keeps its own source code and deployment manifests together so that the project is easier to track and submit.
 
 ## Submission notes
 
@@ -59,7 +61,7 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.2`
 - [Exercise 1.3: Declarative Log Output Manifest](https://github.com/thezmmm/devops-with-kubernetes/tree/1.3/apps/log-output/manifests)
 - Release tag: `1.3`
-- [Exercise 1.4: Todo Server Deployment](https://github.com/thezmmm/devops-with-kubernetes/tree/1.4/k8s/todo-server)
+- [Exercise 1.4: Todo Server Deployment](https://github.com/thezmmm/devops-with-kubernetes/tree/1.4/apps/todo-server)
 - Release tag: `1.4`
 
 ## Notes
