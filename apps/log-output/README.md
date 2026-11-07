@@ -1,24 +1,30 @@
 # Log Output
 
-This application is implemented in Java and generates a random UUID when it starts. It prints the UUID together with a UTC timestamp every 5 seconds and exposes a `/status` endpoint that returns the current timestamp and the same random string.
+This application is split into two containers in a single pod for the multi-container exercise.
+
+- The `logger` container creates a random ID on startup and appends a timestamped line to a shared file every 5 seconds.
+- The `reader` container reads the shared file and serves it through HTTP.
 
 ## Run locally
 
 ```bash
 docker build -t log-output:latest .
-docker run --rm -e PORT=8080 -p 8080:8080 log-output:latest
+```
+
+To test the two roles manually, run them in separate terminals:
+
+```bash
+docker run --rm -e LOG_FILE_PATH=/tmp/log-output.txt --name log-output-writer log-output:latest java -jar /app/log-output.jar writer
+```
+
+```bash
+docker run --rm -e PORT=8080 -e LOG_FILE_PATH=/tmp/log-output.txt -p 8080:8080 --name log-output-reader log-output:latest java -jar /app/log-output.jar reader
 ```
 
 Then open:
 
 ```text
-http://localhost:8080/status
-```
-
-Expected response:
-
-```json
-{"timestamp":"2026-11-08T00:00:00.000Z","id":"7f4b0d3e-..."}
+http://localhost:8080/
 ```
 
 ## Kubernetes
@@ -28,7 +34,8 @@ kubectl apply -f .\apps\log-output\manifests\deployment.yaml
 kubectl apply -f .\apps\log-output\manifests\service.yaml
 kubectl apply -f .\apps\log-output\manifests\ingress.yaml
 kubectl get pods
-kubectl logs deployment/log-output
+kubectl logs deployment/log-output -c logger
+kubectl logs deployment/log-output -c reader
 ```
 
-If the ingress controller is not installed yet, install it first, then test the app with a Host header or by using a local DNS entry such as `log-output.local`.
+The shared `emptyDir` volume is mounted into both containers so the writer can append log lines and the reader can read them over HTTP.

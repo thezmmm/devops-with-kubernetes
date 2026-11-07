@@ -76,6 +76,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.8`
 - [Exercise 1.9: Ping-pong app via shared ingress](https://github.com/thezmmm/devops-with-kubernetes/tree/1.9/apps/ping-pong)
 - Release tag: `1.9`
+- [Exercise 1.10: Multi-container log-output pod](https://github.com/thezmmm/devops-with-kubernetes/tree/1.10/apps/log-output)
+- Release tag: `1.10`
 
 ## Notes
 

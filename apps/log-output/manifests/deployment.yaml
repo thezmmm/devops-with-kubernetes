@@ -12,12 +12,31 @@ spec:
       labels:
         app: log-output
     spec:
+      volumes:
+        - name: shared-logs
+          emptyDir: {}
       containers:
-        - name: log-output
+        - name: logger
           image: log-output:latest
           imagePullPolicy: IfNotPresent
+          command: ["java", "-jar", "/app/log-output.jar", "writer"]
+          env:
+            - name: LOG_FILE_PATH
+              value: "/shared/log-output.txt"
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /shared
+        - name: reader
+          image: log-output:latest
+          imagePullPolicy: IfNotPresent
+          command: ["java", "-jar", "/app/log-output.jar", "reader"]
           env:
             - name: PORT
               value: "8080"
+            - name: LOG_FILE_PATH
+              value: "/shared/log-output.txt"
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /shared
