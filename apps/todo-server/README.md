@@ -33,10 +33,17 @@ If you run the command from inside `apps\todo-server`, use:
 kubectl apply -f .\manifests\deployment.yaml
 ```
 
-This Deployment intentionally does not expose a Service yet; the port-access step is handled later in the course. For local validation, use port-forward:
+### Expose via NodePort
 
 ```bash
-kubectl port-forward deployment/todo-server 8080:8080
+kubectl apply -f .\apps\todo-server\manifests\service.yaml
+kubectl get svc
 ```
 
-Then open http://localhost:8080/ in a browser and confirm the page returns HTML.
+The service exposes the app on a NodePort, using port `30080` on the cluster node. For local validation, you can browse:
+
+```text
+http://localhost:30080/
+```
+
+This is the NodePort-based access method required by the exercise. The app responds with HTML on `/`.
