@@ -55,6 +55,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 
 - [Exercise 1: Log Output (Java)](https://github.com/thezmmm/devops-with-kubernetes/tree/1.1/apps/log-output)
 - Release tag: `1.1`
+- [Exercise 1.2: Todo Server (Java)](https://github.com/thezmmm/devops-with-kubernetes/tree/1.2/apps/todo-server)
+- Release tag: `1.2`
 
 ## Notes
 
