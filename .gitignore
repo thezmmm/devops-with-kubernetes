@@ -1,0 +1,59 @@
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Node / frontend
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+.env
+.env.*
+coverage/
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Docker / container artifacts
+.docker/
+*.local
+
+# Kubernetes / cloud
+kubeconfig
+*.kubeconfig
+.kube/
+
+# Secrets and local config
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+local.env
+
+# Temporary files
+tmp/
+temp/
+cache/
+
+# Git
+.gitignore.local
