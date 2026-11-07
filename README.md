@@ -33,6 +33,9 @@ devops-with-kubernetes/
 │   ├── log-output/
 │   │   ├── manifests/
 │   │   └── ...
+│   ├── ping-pong/
+│   │   ├── manifests/
+│   │   └── ...
 │   ├── todo-server/
 │   │   ├── manifests/
 │   │   └── ...
@@ -71,6 +74,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.7`
 - [Exercise 1.8: Todo app access via ingress](https://github.com/thezmmm/devops-with-kubernetes/tree/1.8/apps/todo-server)
 - Release tag: `1.8`
+- [Exercise 1.9: Ping-pong app via shared ingress](https://github.com/thezmmm/devops-with-kubernetes/tree/1.9/apps/ping-pong)
+- Release tag: `1.9`
 
 ## Notes
 
