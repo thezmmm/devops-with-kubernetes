@@ -12,6 +12,10 @@ spec:
       labels:
         app: todo-server
     spec:
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
       containers:
         - name: todo-server
           image: todo-server:latest
@@ -19,5 +23,10 @@ spec:
           env:
             - name: PORT
               value: "8080"
+            - name: IMAGE_CACHE_DIR
+              value: "/data/images"
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: shared-data
+              mountPath: /data

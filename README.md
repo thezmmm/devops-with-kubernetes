@@ -83,6 +83,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.10`
 - [Exercise 1.11: Shared persistent volume between ping-pong and log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/1.11/apps)
 - Release tag: `1.11`
+- [Exercise 1.12: Cached random image in todo-server](https://github.com/thezmmm/devops-with-kubernetes/tree/1.12/apps/todo-server)
+- Release tag: `1.12`
 
 ## Notes
 
