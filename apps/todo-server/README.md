@@ -19,10 +19,18 @@ Then open http://localhost:8080/ to confirm the server responds.
 
 ## Kubernetes
 
-The deployment file sets the same environment variable and runs the application in a pod:
+The deployment file sets the same environment variable and runs the application in a pod. From the repository root, use:
 
 ```bash
-kubectl apply -f ../../k8s/todo-server/deployment.yaml
+kubectl apply -f .\k8s\todo-server\deployment.yaml
 kubectl get pods
 kubectl logs deployment/todo-server
 ```
+
+If you run the command from inside `apps\todo-server`, use:
+
+```bash
+kubectl apply -f ..\..\k8s\todo-server\deployment.yaml
+```
+
+This Deployment intentionally does not expose a Service yet; port access will be configured in a later exercise.
