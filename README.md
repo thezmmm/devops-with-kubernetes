@@ -56,15 +56,6 @@ The course expects a clear repository layout and release tags for exercises. A g
 - [Exercise 1: Log Output (Java)](https://github.com/thezmmm/devops-with-kubernetes/tree/1.1/apps/log-output)
 - Release tag: `1.1`
 
-## Learning log
-
-- [x] Chapter 1: Getting started
-- [ ] Chapter 2: Kubernetes basics
-- [ ] Chapter 3: Kubernetes applications
-- [ ] Chapter 4: Kubernetes in the cloud
-- [ ] Chapter 5: Continuous delivery
-- [ ] Chapter 6: Final project
-
 ## Notes
 
 - Always validate Kubernetes manifests before applying them.
@@ -75,7 +66,3 @@ The course expects a clear repository layout and release tags for exercises. A g
 ## License
 
 This repository is for learning and course practice. Follow the course instructions and relevant licensing rules for any shared examples or code.
-
-## Contributing
-
-This is primarily a personal learning repository, but relevant improvements and notes are welcome.
