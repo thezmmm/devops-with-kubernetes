@@ -77,11 +77,16 @@ The course material expects repositories to be organized clearly and often asks 
 - create release tags like `1.1`, `1.2`, etc. when required
 - include links from the main repo README to the relevant exercise folders/releases
 
+## Exercise links
+
+- [Exercise 1: Log Output](apps/log-output/README.md)
+- Release tag for Exercise 1: `1.1`
+
 ## Learning log
 
 This section can be updated as exercises are completed.
 
-- [ ] Chapter 1: Getting started
+- [x] Chapter 1: Getting started
 - [ ] Chapter 2: Kubernetes basics
 - [ ] Chapter 3: Kubernetes applications
 - [ ] Chapter 4: Kubernetes in the cloud
