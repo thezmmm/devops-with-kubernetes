@@ -1,7 +1,15 @@
-FROM python:3.12-slim
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+
+WORKDIR /workspace
+
+COPY pom.xml ./
+COPY src ./src
+RUN mvn -q -DskipTests package
+
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY app.py /app/app.py
+COPY --from=build /workspace/target/log-output-1.0.0.jar /app/log-output.jar
 
-CMD ["python", "app.py"]
+ENTRYPOINT ["java", "-jar", "/app/log-output.jar"]

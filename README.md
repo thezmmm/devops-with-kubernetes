@@ -79,8 +79,8 @@ The course material expects repositories to be organized clearly and often asks 
 
 ## Exercise links
 
-- [Exercise 1: Log Output](apps/log-output/README.md)
-- Release tag for Exercise 1: `1.1`
+- [Exercise 1: Log Output (Java)](apps/log-output/README.md)
+- Release tag for Exercise 1: `1.2`
 
 ## Learning log
 

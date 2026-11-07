@@ -1,6 +1,6 @@
 # Log Output
 
-This application generates a random UUID when it starts and prints it with a UTC timestamp every 5 seconds.
+This application is implemented in Java and generates a random UUID when it starts. It prints the UUID together with a UTC timestamp every 5 seconds.
 
 ## Run locally
 
@@ -12,6 +12,6 @@ docker run --rm log-output:latest
 Expected log output:
 
 ```text
-2020-03-30T12:15:17.705Z: 8523ecb1-c716-4cb6-a044-b9e83bb98e43
-2020-03-30T12:15:22.705Z: 8523ecb1-c716-4cb6-a044-b9e83bb98e43
+2026-11-07T15:50:00.123Z: 83364e18-70df-47cc-ad50-31d32ef8504d
+2026-11-07T15:50:05.123Z: 83364e18-70df-47cc-ad50-31d32ef8504d
 ```
