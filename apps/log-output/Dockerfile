@@ -13,3 +13,4 @@ WORKDIR /app
 COPY --from=build /workspace/target/log-output-1.0.0.jar /app/log-output.jar
 
 ENTRYPOINT ["java", "-jar", "/app/log-output.jar"]
+CMD ["reader"]

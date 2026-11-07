@@ -13,8 +13,9 @@ spec:
         app: log-output
     spec:
       volumes:
-        - name: shared-logs
-          emptyDir: {}
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
       containers:
         - name: logger
           image: log-output:latest
@@ -22,10 +23,10 @@ spec:
           command: ["java", "-jar", "/app/log-output.jar", "writer"]
           env:
             - name: LOG_FILE_PATH
-              value: "/shared/log-output.txt"
+              value: "/data/log-output.txt"
           volumeMounts:
-            - name: shared-logs
-              mountPath: /shared
+            - name: shared-data
+              mountPath: /data
         - name: reader
           image: log-output:latest
           imagePullPolicy: IfNotPresent
@@ -34,9 +35,11 @@ spec:
             - name: PORT
               value: "8080"
             - name: LOG_FILE_PATH
-              value: "/shared/log-output.txt"
+              value: "/data/log-output.txt"
+            - name: PING_COUNT_FILE_PATH
+              value: "/data/ping-pong-count.txt"
           ports:
             - containerPort: 8080
           volumeMounts:
-            - name: shared-logs
-              mountPath: /shared
+            - name: shared-data
+              mountPath: /data

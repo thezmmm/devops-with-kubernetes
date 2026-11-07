@@ -21,28 +21,27 @@ public class LogOutput {
 
     public static void main(String[] args) throws Exception {
         String role = args.length > 0 ? args[0].toLowerCase(Locale.ROOT) : "reader";
-
         if ("writer".equals(role)) {
             runWriter();
             return;
         }
-
         runReader();
     }
 
     private static void runWriter() throws IOException, InterruptedException {
         String appId = UUID.randomUUID().toString();
-        Path logFile = Paths.get(System.getenv().getOrDefault("LOG_FILE_PATH", "/tmp/log-output.txt"));
+        Path logFile = Paths.get(System.getenv().getOrDefault("LOG_FILE_PATH", "/data/log-output.txt"));
         Files.createDirectories(logFile.getParent());
 
         while (true) {
             Instant now = Instant.now();
-            String line = now + " " + appId;
+            String line = now + ": " + appId + ".";
             Files.writeString(
                     logFile,
-                    line + System.lineSeparator(),
+                    line,
                     StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE
             );
             System.out.println(line);
             Thread.sleep(LOG_INTERVAL_MS);
@@ -51,30 +50,41 @@ public class LogOutput {
 
     private static void runReader() throws IOException {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
-        Path logFile = Paths.get(System.getenv().getOrDefault("LOG_FILE_PATH", "/tmp/log-output.txt"));
+        Path logFile = Paths.get(System.getenv().getOrDefault("LOG_FILE_PATH", "/data/log-output.txt"));
+        Path pingCountFile = Paths.get(System.getenv().getOrDefault("PING_COUNT_FILE_PATH", "/data/ping-pong-count.txt"));
+
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         server.createContext("/", exchange -> {
-            String body = readLog(logFile);
+            String body = buildStatus(logFile, pingCountFile);
             writeResponse(exchange, 200, "text/plain; charset=UTF-8", body);
         });
 
         server.createContext("/status", exchange -> {
-            String body = readLog(logFile);
-            String json = "{\"content\":\"" + body.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}";
+            String body = buildStatus(logFile, pingCountFile);
+            String json = "{\"message\":\"" + body.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}";
             writeResponse(exchange, 200, "application/json; charset=UTF-8", json);
         });
 
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
-        System.out.printf("Reader started in port %d, reading %s%n", port, logFile);
+        System.out.printf("Reader started in port %d, reading %s and %s%n", port, logFile, pingCountFile);
     }
 
-    private static String readLog(Path logFile) throws IOException {
-        if (Files.exists(logFile)) {
-            return Files.readString(logFile, StandardCharsets.UTF_8);
+    private static String buildStatus(Path logFile, Path pingCountFile) throws IOException {
+        String timestampAndId = Files.exists(logFile)
+                ? Files.readString(logFile, StandardCharsets.UTF_8).trim()
+                : "No log data yet.";
+
+        int pingPongs = 0;
+        if (Files.exists(pingCountFile)) {
+            String content = Files.readString(pingCountFile, StandardCharsets.UTF_8).trim();
+            if (!content.isEmpty()) {
+                pingPongs = Integer.parseInt(content);
+            }
         }
-        return "No log data yet.";
+
+        return timestampAndId + "\nPing / Pongs: " + pingPongs;
     }
 
     private static void writeResponse(HttpExchange exchange, int statusCode, String contentType, String body) {

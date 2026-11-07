@@ -12,6 +12,10 @@ spec:
       labels:
         app: ping-pong
     spec:
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-data
       containers:
         - name: ping-pong
           image: ping-pong:latest
@@ -19,5 +23,10 @@ spec:
           env:
             - name: PORT
               value: "8080"
+            - name: PING_COUNT_FILE_PATH
+              value: "/data/ping-pong-count.txt"
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: shared-data
+              mountPath: /data

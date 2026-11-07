@@ -40,6 +40,9 @@ devops-with-kubernetes/
 │   │   ├── manifests/
 │   │   └── ...
 │   └── ...
+├── persistent/
+│   ├── pv.yaml
+│   └── pvc.yaml
 ├── scripts/
 │   └── helpers/
 └── .github/
@@ -78,6 +81,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.9`
 - [Exercise 1.10: Multi-container log-output pod](https://github.com/thezmmm/devops-with-kubernetes/tree/1.10/apps/log-output)
 - Release tag: `1.10`
+- [Exercise 1.11: Shared persistent volume between ping-pong and log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/1.11/apps)
+- Release tag: `1.11`
 
 ## Notes
 
