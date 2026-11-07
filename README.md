@@ -21,18 +21,6 @@ This repository is used to:
 - document exercise results and learning notes
 - submit GitHub release links for course exercises
 
-## Local tools
-
-Recommended tools for this course:
-
-- Docker
-- Docker Compose
-- kubectl
-- Kubernetes cluster tooling such as kind, k3d, or minikube
-- Git
-- VS Code or another editor
-- Optional: Helm, k9s, kubens, or similar helpers
-
 ## Repository structure
 
 ```text
@@ -54,15 +42,6 @@ devops-with-kubernetes/
 
 Each application or exercise is kept in its own folder so that it is easy to test and submit.
 
-## Typical workflow
-
-1. Read the course chapter and exercise instructions.
-2. Build and test the app locally with Docker.
-3. Run the app in a local Kubernetes cluster.
-4. Validate the deployment, logs, and behavior.
-5. Document the result and commit the changes.
-6. Create a GitHub release tag when required by the exercise.
-
 ## Submission notes
 
 The course expects a clear repository layout and release tags for exercises. A good habit is to:
@@ -74,7 +53,7 @@ The course expects a clear repository layout and release tags for exercises. A g
 
 ## Exercise links
 
-- [Exercise 1: Log Output (Java)](apps/log-output/README.md)
+- [Exercise 1: Log Output (Java)](https://github.com/thezmmm/devops-with-kubernetes/tree/1.1/apps/log-output)
 - Release tag: `1.1`
 
 ## Learning log
