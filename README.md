@@ -1,90 +1,83 @@
 # DevOps with Kubernetes
 
-This repository is used for learning and practicing the DevOps with Kubernetes course material from the University of Helsinki / MOOC.fi.
+This repository is used for learning and practicing the DevOps with Kubernetes course from the University of Helsinki / MOOC.fi.
 
-## Course information
+## Course
 
 - Course: DevOps with Kubernetes
 - Platform: MOOC.fi / University of Helsinki
-- Material: https://courses.mooc.fi/org/uh-cs/courses/devops-with-kubernetes-2026
+- Course material: https://courses.mooc.fi/org/uh-cs/courses/devops-with-kubernetes-2026
 
-This repo will hold notes, application source code, Kubernetes manifests, deployment scripts, and exercise solutions as I progress through the course.
+The goal of this repo is to keep notes, application code, Kubernetes manifests, and exercise submissions organized while progressing through the course.
 
 ## Repository purpose
 
-The main goals of this repository are:
+This repository is used to:
 
-- learn containerization with Docker
-- build small web applications and APIs
-- deploy applications to Kubernetes
-- manage workloads, services, ingress, storage, and scaling
-- practice CI/CD and automation workflows
-- document learnings and exercise submissions
+- learn Docker and container basics
+- build small applications and APIs
+- deploy workloads to Kubernetes
+- practice networking, scaling, and storage topics
+- document exercise results and learning notes
+- submit GitHub release links for course exercises
 
-## Recommended local tools
+## Local tools
 
-Before starting the exercises, make sure you have the following installed:
+Recommended tools for this course:
 
 - Docker
 - Docker Compose
 - kubectl
-- Kubernetes cluster tooling such as kind or minikube
+- Kubernetes cluster tooling such as kind, k3d, or minikube
 - Git
-- A code editor such as VS Code
-- Optional: Helm, kubens, k9s, or other Kubernetes helpers
+- VS Code or another editor
+- Optional: Helm, k9s, kubens, or similar helpers
 
-## Suggested repository layout
-
-A practical structure for this course looks like this:
+## Repository structure
 
 ```text
-.devops-with-kubernetes/
+devops-with-kubernetes/
 ├── README.md
 ├── .gitignore
 ├── docs/
 │   └── notes/
 ├── apps/
-│   ├── app-1/
-│   ├── app-2/
+│   ├── log-output/
 │   └── ...
 ├── k8s/
-│   ├── manifests/
-│   ├── configs/
-│   └── secrets/
+│   ├── log-output/
+│   └── ...
 ├── scripts/
-│   └── helper-scripts/
-└── exercises/
-    └── exercise-logs/
+│   └── helpers/
+└── .github/
 ```
 
-Use one directory per application or per exercise to keep the repository organized.
+Each application or exercise is kept in its own folder so that it is easy to test and submit.
 
 ## Typical workflow
 
 1. Read the course chapter and exercise instructions.
-2. Build the application locally with Docker.
-3. Run it in a local Kubernetes cluster.
-4. Validate configuration, networking, and resource behavior.
-5. Commit and document the result.
-6. Tag releases when required by the course submission format.
+2. Build and test the app locally with Docker.
+3. Run the app in a local Kubernetes cluster.
+4. Validate the deployment, logs, and behavior.
+5. Document the result and commit the changes.
+6. Create a GitHub release tag when required by the exercise.
 
 ## Submission notes
 
-The course material expects repositories to be organized clearly and often asks students to create a GitHub release for each exercise. A good habit is to:
+The course expects a clear repository layout and release tags for exercises. A good habit is to:
 
-- keep exercise-related apps or manifests in separate directories
-- keep a README in each app directory
-- create release tags like `1.1`, `1.2`, etc. when required
-- include links from the main repo README to the relevant exercise folders/releases
+- keep each app in a separate directory
+- add a README for each application
+- create release tags such as `1.1`, `1.2`, etc.
+- link each exercise from the main README to the relevant folder or release
 
 ## Exercise links
 
 - [Exercise 1: Log Output (Java)](apps/log-output/README.md)
-- Release tag for Exercise 1: `1.2`
+- Release tag: `1.1`
 
 ## Learning log
-
-This section can be updated as exercises are completed.
 
 - [x] Chapter 1: Getting started
 - [ ] Chapter 2: Kubernetes basics
@@ -95,15 +88,15 @@ This section can be updated as exercises are completed.
 
 ## Notes
 
-- Always verify Kubernetes manifests before applying them to a cluster.
-- Prefer small, focused apps when practicing new Kubernetes features.
+- Always validate Kubernetes manifests before applying them.
+- Prefer small, focused apps for learning new Kubernetes concepts.
 - Keep environment variables and secrets out of version control.
-- When working with cloud providers, use dedicated test projects and clean up resources when done.
+- Clean up cloud resources when experiments are complete.
 
 ## License
 
-This repository is for learning purposes and follows the course material and university guidance. Individual source code and examples should be treated according to the course's licensing and submission rules.
+This repository is for learning and course practice. Follow the course instructions and relevant licensing rules for any shared examples or code.
 
 ## Contributing
 
-This is primarily a personal learning repository, but improvements and notes are welcome if they are relevant to the course material.
+This is primarily a personal learning repository, but relevant improvements and notes are welcome.
