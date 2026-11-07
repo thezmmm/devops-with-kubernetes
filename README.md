@@ -85,6 +85,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.11`
 - [Exercise 1.12: Cached random image in todo-server](https://github.com/thezmmm/devops-with-kubernetes/tree/1.12/apps/todo-server)
 - Release tag: `1.12`
+- [Exercise 1.13: Todo input form with validation and in-page updates](https://github.com/thezmmm/devops-with-kubernetes/tree/1.13/apps/todo-server)
+- Release tag: `1.13`
 
 ## Notes
 
