@@ -63,6 +63,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.3`
 - [Exercise 1.4: Todo Server Deployment](https://github.com/thezmmm/devops-with-kubernetes/tree/1.4/apps/todo-server)
 - Release tag: `1.4`
+- [Exercise 1.5: Todo UI via port-forward](https://github.com/thezmmm/devops-with-kubernetes/tree/1.5/apps/todo-server)
+- Release tag: `1.5`
 
 ## Notes
 

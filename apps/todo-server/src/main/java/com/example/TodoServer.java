@@ -15,7 +15,11 @@ public class TodoServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         server.createContext("/", (HttpExchange exchange) -> {
-            String response = "<html><body><h1>Todo app</h1><p>Server started in port " + port + "</p></body></html>";
+            String response = "<html><body>"
+                    + "<h1>Todo app</h1>"
+                    + "<p>Server started in port " + port + "</p>"
+                    + "<p>Todos will be listed here soon.</p>"
+                    + "</body></html>";
             byte[] body = response.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, body.length);

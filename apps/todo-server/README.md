@@ -33,4 +33,10 @@ If you run the command from inside `apps\todo-server`, use:
 kubectl apply -f .\manifests\deployment.yaml
 ```
 
-This Deployment intentionally does not expose a Service yet; port access will be configured in a later exercise.
+This Deployment intentionally does not expose a Service yet; the port-access step is handled later in the course. For local validation, use port-forward:
+
+```bash
+kubectl port-forward deployment/todo-server 8080:8080
+```
+
+Then open http://localhost:8080/ in a browser and confirm the page returns HTML.
