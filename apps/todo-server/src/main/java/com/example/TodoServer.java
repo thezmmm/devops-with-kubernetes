@@ -24,16 +24,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TodoServer {
-    private static final String PICSUM_URL = "https://picsum.photos/1200";
+    private static final String PICSUM_URL = requireEnv("PICSUM_URL");
     private static final Duration CACHE_TTL = Duration.ofMinutes(10);
     private static final int MAX_TODO_LENGTH = 140;
-    private static final String BACKEND_URL = System.getenv().getOrDefault("TODO_BACKEND_URL", "http://todo-backend");
+    private static final String BACKEND_URL = requireEnv("TODO_BACKEND_URL");
     private static final Pattern TODO_LIST_PATTERN = Pattern.compile("\"todos\"\\s*:\\s*\\[(.*)\\]");
     private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\\\"((?:\\\\.|[^\\\"])*)\\\"");
 
     public static void main(String[] args) throws IOException {
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
-        Path cacheDir = Paths.get(System.getenv().getOrDefault("IMAGE_CACHE_DIR", "/data/images"));
+        int port = Integer.parseInt(requireEnv("PORT"));
+        Path cacheDir = Paths.get(requireEnv("IMAGE_CACHE_DIR"));
         Path imageFile = cacheDir.resolve("current.jpg");
         Path stateFile = cacheDir.resolve("cache-state.properties");
         Files.createDirectories(cacheDir);
@@ -108,6 +108,14 @@ public class TodoServer {
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(response);
         }
+    }
+
+    private static String requireEnv(String key) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required environment variable: " + key);
+        }
+        return value;
     }
 
     private static String createTodo(String text) throws IOException {

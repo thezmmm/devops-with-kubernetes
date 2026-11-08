@@ -15,8 +15,8 @@ import java.util.concurrent.Executors;
 
 public class PingPong {
     public static void main(String[] args) throws IOException {
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
-        Path countFile = Paths.get(System.getenv().getOrDefault("PING_COUNT_FILE_PATH", "/data/ping-pong-count.txt"));
+        int port = Integer.parseInt(requireEnv("PORT"));
+        Path countFile = Paths.get(requireEnv("PING_COUNT_FILE_PATH"));
         Files.createDirectories(countFile.getParent());
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
@@ -62,6 +62,14 @@ public class PingPong {
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE
         );
+    }
+
+    private static String requireEnv(String key) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required environment variable: " + key);
+        }
+        return value;
     }
 
     private static void sendResponse(HttpExchange exchange, int statusCode, String contentType, String body) throws IOException {

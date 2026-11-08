@@ -20,7 +20,7 @@ public class TodoBackend {
     private static final Pattern TEXT_FIELD_PATTERN = Pattern.compile("\\\"text\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*?)\\\"");
 
     public static void main(String[] args) throws IOException {
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+        int port = Integer.parseInt(requireEnv("PORT"));
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/todos", exchange -> {
@@ -39,6 +39,14 @@ public class TodoBackend {
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.printf("Todo backend started on port %d%n", port);
+    }
+
+    private static String requireEnv(String key) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required environment variable: " + key);
+        }
+        return value;
     }
 
     private static void handleGet(HttpExchange exchange) throws IOException {

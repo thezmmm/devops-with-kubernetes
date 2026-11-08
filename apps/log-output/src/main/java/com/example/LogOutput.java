@@ -33,7 +33,7 @@ public class LogOutput {
 
     private static void runWriter() throws IOException, InterruptedException {
         String appId = UUID.randomUUID().toString();
-        Path logFile = Paths.get(System.getenv().getOrDefault("LOG_FILE_PATH", "/data/log-output.txt"));
+        Path logFile = Paths.get(requireEnv("LOG_FILE_PATH"));
         Files.createDirectories(logFile.getParent());
 
         while (true) {
@@ -53,9 +53,9 @@ public class LogOutput {
     }
 
     private static void runReader() throws IOException {
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
-        Path logFile = Paths.get(System.getenv().getOrDefault("LOG_FILE_PATH", "/data/log-output.txt"));
-        String pingPongUrl = System.getenv().getOrDefault("PING_PONG_URL", "http://ping-pong/pingpong");
+        int port = Integer.parseInt(requireEnv("PORT"));
+        Path logFile = Paths.get(requireEnv("LOG_FILE_PATH"));
+        String pingPongUrl = requireEnv("PING_PONG_URL");
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
@@ -85,7 +85,7 @@ public class LogOutput {
     }
 
     private static String buildConfigInfo() {
-        String configFilePath = System.getenv().getOrDefault("LOG_INFO_FILE_PATH", "/etc/config/information.txt");
+        String configFilePath = requireEnv("LOG_INFO_FILE_PATH");
         String fileContent = "not found";
         try {
             Path file = Paths.get(configFilePath);
@@ -96,8 +96,16 @@ public class LogOutput {
             fileContent = "error reading config file";
         }
 
-        String message = System.getenv().getOrDefault("MESSAGE", "MESSAGE not set");
+        String message = requireEnv("MESSAGE");
         return "file content: " + fileContent + "\nenv variable: MESSAGE=" + message;
+    }
+
+    private static String requireEnv(String key) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required environment variable: " + key);
+        }
+        return value;
     }
 
     private static int fetchPingCount(String pingPongUrl) {

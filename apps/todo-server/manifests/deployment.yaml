@@ -28,6 +28,8 @@ spec:
               value: "/data/images"
             - name: TODO_BACKEND_URL
               value: "http://todo-backend"
+            - name: PICSUM_URL
+              value: "https://picsum.photos/1200"
           ports:
             - containerPort: 8080
           volumeMounts:
