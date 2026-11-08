@@ -89,8 +89,12 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.13`
 - [Exercise 2.1: Connect log-output and ping-pong with HTTP](https://github.com/thezmmm/devops-with-kubernetes/tree/2.1/apps)
 - Release tag: `2.1`
-- [Exercise 2.2: Move todo storage into a dedicated backend service](https://github.com/thezmmm/devops-with-kubernetes/tree/main/apps)
-- Release tag: upcoming
+- [Exercise 2.2: Move todo storage into a dedicated backend service](https://github.com/thezmmm/devops-with-kubernetes/tree/2.2/apps)
+- Release tag: `2.2`
+- [Exercise 2.3: Create the exercises namespace for course apps](https://github.com/thezmmm/devops-with-kubernetes/tree/2.3/namespaces)
+- Release tag: `2.3`
+- [Exercise 2.4: Create the project namespace for project apps](https://github.com/thezmmm/devops-with-kubernetes/tree/2.4/namespaces)
+- Release tag: `2.4`
 
 ## Notes
 
