@@ -46,6 +46,7 @@ public class LogOutput {
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE
             );
+            System.out.println(buildConfigInfo());
             System.out.println(line);
             Thread.sleep(LOG_INTERVAL_MS);
         }
@@ -80,7 +81,23 @@ public class LogOutput {
                 : "No log data yet.";
 
         int pingPongs = fetchPingCount(pingPongUrl);
-        return timestampAndId + "\nPing / Pongs: " + pingPongs;
+        return buildConfigInfo() + "\n" + timestampAndId + "\nPing / Pongs: " + pingPongs;
+    }
+
+    private static String buildConfigInfo() {
+        String configFilePath = System.getenv().getOrDefault("LOG_INFO_FILE_PATH", "/etc/config/information.txt");
+        String fileContent = "not found";
+        try {
+            Path file = Paths.get(configFilePath);
+            if (Files.exists(file)) {
+                fileContent = Files.readString(file, StandardCharsets.UTF_8).trim();
+            }
+        } catch (IOException e) {
+            fileContent = "error reading config file";
+        }
+
+        String message = System.getenv().getOrDefault("MESSAGE", "MESSAGE not set");
+        return "file content: " + fileContent + "\nenv variable: MESSAGE=" + message;
     }
 
     private static int fetchPingCount(String pingPongUrl) {

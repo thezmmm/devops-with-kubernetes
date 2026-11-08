@@ -16,6 +16,9 @@ spec:
       volumes:
         - name: shared-data
           emptyDir: {}
+        - name: log-config
+          configMap:
+            name: log-output-config
       containers:
         - name: logger
           image: log-output:latest
@@ -24,9 +27,19 @@ spec:
           env:
             - name: LOG_FILE_PATH
               value: "/data/log-output.txt"
+            - name: LOG_INFO_FILE_PATH
+              value: "/etc/config/information.txt"
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-config
+                  key: MESSAGE
           volumeMounts:
             - name: shared-data
               mountPath: /data
+            - name: log-config
+              mountPath: /etc/config
+              readOnly: true
         - name: reader
           image: log-output:latest
           imagePullPolicy: IfNotPresent
@@ -38,8 +51,18 @@ spec:
               value: "/data/log-output.txt"
             - name: PING_PONG_URL
               value: "http://ping-pong/pingpong"
+            - name: LOG_INFO_FILE_PATH
+              value: "/etc/config/information.txt"
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-config
+                  key: MESSAGE
           ports:
             - containerPort: 8080
           volumeMounts:
             - name: shared-data
               mountPath: /data
+            - name: log-config
+              mountPath: /etc/config
+              readOnly: true

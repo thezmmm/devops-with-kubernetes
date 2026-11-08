@@ -95,6 +95,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `2.3`
 - [Exercise 2.4: Create the project namespace for project apps](https://github.com/thezmmm/devops-with-kubernetes/tree/2.4/namespaces)
 - Release tag: `2.4`
+- [Exercise 2.5: Add a ConfigMap-backed MESSAGE and file to log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/main/apps/log-output)
+- Release tag: upcoming
 
 ## Notes
 
