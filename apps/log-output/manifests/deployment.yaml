@@ -14,8 +14,7 @@ spec:
     spec:
       volumes:
         - name: shared-data
-          persistentVolumeClaim:
-            claimName: shared-data
+          emptyDir: {}
       containers:
         - name: logger
           image: log-output:latest
@@ -36,8 +35,8 @@ spec:
               value: "8080"
             - name: LOG_FILE_PATH
               value: "/data/log-output.txt"
-            - name: PING_COUNT_FILE_PATH
-              value: "/data/ping-pong-count.txt"
+            - name: PING_PONG_URL
+              value: "http://ping-pong/pingpong"
           ports:
             - containerPort: 8080
           volumeMounts:

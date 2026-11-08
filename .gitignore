@@ -54,6 +54,7 @@ local.env
 tmp/
 temp/
 cache/
+tmp-build/
 
 # Git
 .gitignore.local
