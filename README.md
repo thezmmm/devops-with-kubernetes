@@ -87,7 +87,9 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `1.12`
 - [Exercise 1.13: Todo input form with validation and in-page updates](https://github.com/thezmmm/devops-with-kubernetes/tree/1.13/apps/todo-server)
 - Release tag: `1.13`
-- [Exercise 2.1: Connect log-output and ping-pong with HTTP](https://github.com/thezmmm/devops-with-kubernetes/tree/main/apps)
+- [Exercise 2.1: Connect log-output and ping-pong with HTTP](https://github.com/thezmmm/devops-with-kubernetes/tree/2.1/apps)
+- Release tag: `2.1`
+- [Exercise 2.2: Move todo storage into a dedicated backend service](https://github.com/thezmmm/devops-with-kubernetes/tree/main/apps)
 - Release tag: upcoming
 
 ## Notes

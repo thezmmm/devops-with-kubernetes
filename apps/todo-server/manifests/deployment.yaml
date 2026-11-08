@@ -25,6 +25,8 @@ spec:
               value: "8080"
             - name: IMAGE_CACHE_DIR
               value: "/data/images"
+            - name: TODO_BACKEND_URL
+              value: "http://todo-backend"
           ports:
             - containerPort: 8080
           volumeMounts:

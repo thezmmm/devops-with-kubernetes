@@ -16,14 +16,20 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TodoServer {
     private static final String PICSUM_URL = "https://picsum.photos/1200";
     private static final Duration CACHE_TTL = Duration.ofMinutes(10);
     private static final int MAX_TODO_LENGTH = 140;
-    private static final List<String> TODO_ITEMS = new java.util.ArrayList<>();
+    private static final String BACKEND_URL = System.getenv().getOrDefault("TODO_BACKEND_URL", "http://todo-backend");
+    private static final Pattern TODO_LIST_PATTERN = Pattern.compile("\"todos\"\\s*:\\s*\\[(.*)\\]");
+    private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\\\"((?:\\\\.|[^\\\"])*)\\\"");
 
     public static void main(String[] args) throws IOException {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
@@ -39,7 +45,9 @@ public class TodoServer {
                 handlePost(exchange, imageFile, stateFile);
                 return;
             }
-            String html = buildHtml(imageFile, stateFile, null);
+
+            List<String> todos = fetchTodos();
+            String html = buildHtml(imageFile, stateFile, todos, null, 200);
             byte[] body = html.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, body.length);
@@ -59,76 +67,130 @@ public class TodoServer {
 
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
-        System.out.printf("Server started in port %d with cache at %s%n", port, cacheDir);
+        System.out.printf("Todo app started in port %d with backend %s and cache at %s%n", port, BACKEND_URL, cacheDir);
     }
 
     private static void handlePost(HttpExchange exchange, Path imageFile, Path stateFile) throws IOException {
-        byte[] body = exchange.getRequestBody().readAllBytes();
-        String text = new String(body, StandardCharsets.UTF_8);
-        String todoValue = parseFormValue(text, "todo");
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        String todoValue = parseFormValue(body, "todo");
 
         if (todoValue == null) {
-            String html = buildHtml(imageFile, stateFile, "Please enter a todo before submitting.");
-            byte[] response = html.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-            exchange.sendResponseHeaders(400, response.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response);
-            }
+            renderHtml(exchange, imageFile, stateFile, fetchTodos(), "Please enter a todo before submitting.", 400);
             return;
         }
 
         String trimmedTodo = todoValue.trim();
         if (trimmedTodo.isEmpty()) {
-            String html = buildHtml(imageFile, stateFile, "Please enter a todo before submitting.");
-            byte[] response = html.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-            exchange.sendResponseHeaders(400, response.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response);
-            }
+            renderHtml(exchange, imageFile, stateFile, fetchTodos(), "Please enter a todo before submitting.", 400);
             return;
         }
 
         if (trimmedTodo.length() > MAX_TODO_LENGTH) {
-            String html = buildHtml(imageFile, stateFile, "Todo exceeds 140 characters. Please shorten it and try again.");
-            byte[] response = html.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-            exchange.sendResponseHeaders(400, response.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response);
-            }
+            renderHtml(exchange, imageFile, stateFile, fetchTodos(), "Todo exceeds 140 characters. Please shorten it and try again.", 400);
             return;
         }
 
-        TODO_ITEMS.add(trimmedTodo);
-        String html = buildHtml(imageFile, stateFile, "Added: " + trimmedTodo);
+        String backendResponse = createTodo(trimmedTodo);
+        if (backendResponse == null) {
+            renderHtml(exchange, imageFile, stateFile, fetchTodos(), "Could not reach the todo backend.", 500);
+            return;
+        }
+
+        List<String> todos = fetchTodos();
+        renderHtml(exchange, imageFile, stateFile, todos, "Added: " + trimmedTodo, 200);
+    }
+
+    private static void renderHtml(HttpExchange exchange, Path imageFile, Path stateFile, List<String> todos, String statusMessage, int statusCode) throws IOException {
+        String html = buildHtml(imageFile, stateFile, todos, statusMessage, statusCode);
         byte[] response = html.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-        exchange.sendResponseHeaders(200, response.length);
+        exchange.sendResponseHeaders(statusCode, response.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(response);
         }
     }
 
+    private static String createTodo(String text) throws IOException {
+        URL url = new URL(BACKEND_URL + "/todos");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+        String payload = "{\"text\":\"" + escapeJson(text) + "\"}";
+        try (OutputStream os = connection.getOutputStream()) {
+            os.write(payload.getBytes(StandardCharsets.UTF_8));
+        }
+
+        int statusCode = connection.getResponseCode();
+        if (statusCode < 200 || statusCode >= 300) {
+            return null;
+        }
+
+        try (InputStream in = connection.getInputStream()) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private static List<String> fetchTodos() throws IOException {
+        try {
+            URL url = new URL(BACKEND_URL + "/todos");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return Collections.emptyList();
+            }
+
+            try (InputStream in = connection.getInputStream()) {
+                String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                return parseTodoList(json);
+            }
+        } catch (IOException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private static List<String> parseTodoList(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        Matcher matcher = TODO_LIST_PATTERN.matcher(json);
+        if (!matcher.find()) {
+            return Collections.emptyList();
+        }
+
+        String items = matcher.group(1);
+        List<String> result = new ArrayList<>();
+        Matcher itemMatcher = JSON_STRING_PATTERN.matcher(items);
+        while (itemMatcher.find()) {
+            String value = itemMatcher.group(1).replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
+            result.add(value);
+        }
+        return result;
+    }
+
     private static String parseFormValue(String formData, String key) {
+        if (formData == null || formData.isBlank()) return null;
         String[] pairs = formData.split("&");
         for (String pair : pairs) {
             String[] entry = pair.split("=", 2);
-            if (entry.length != 2) {
-                continue;
-            }
-            if (key.equals(entry[0])) {
+            if (entry.length == 2 && key.equals(entry[0])) {
                 return java.net.URLDecoder.decode(entry[1], StandardCharsets.UTF_8);
             }
         }
         return null;
     }
 
-    private static String buildHtml(Path imageFile, Path stateFile, String statusMessage) throws IOException {
-        String successHtml = (statusMessage == null || statusMessage.isBlank())
-                ? ""
-                : "<div class='status-banner'>" + statusMessage + "</div>";
+    private static String buildHtml(Path imageFile, Path stateFile, List<String> todoItems, String statusMessage, int statusCode) throws IOException {
+        String bannerClass = statusCode >= 400 ? "error-banner" : "status-banner";
+        String safeStatus = statusMessage == null || statusMessage.isBlank() ? "" : "<div class='" + bannerClass + "'>" + escapeHtml(statusMessage) + "</div>";
+        String listMarkup = renderTodos(todoItems);
 
         return "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Todo app</title>"
                 + "<style>"
@@ -150,19 +212,33 @@ public class TodoServer {
                 + "li{padding:4px 0;color:#334155;}"
                 + "@media (max-width: 760px){.hero{grid-template-columns:1fr;}}"
                 + "</style></head><body><div class='container'><h1>Todo app</h1>"
-                + (statusMessage != null && statusMessage.startsWith("Added:") ? successHtml : statusMessage != null ? "<div class='error-banner'>" + statusMessage + "</div>" : "")
-                + "<div class='hero'><div class='image-card'><img src='/image' alt='Project image' /></div><div class='card'><form class='todo-form' method='POST' action='/'><input type='text' name='todo' maxlength='140' placeholder='Write a new todo...' aria-label='Todo input' /><button type='submit'>Send</button></form><ul>" + renderTodos() + "</ul></div></div></div></body></html>";
+                + safeStatus
+                + "<div class='hero'><div class='image-card'><img src='/image' alt='Project image' /></div><div class='card'><form class='todo-form' method='POST' action='/'><input type='text' name='todo' maxlength='140' placeholder='Write a new todo...' aria-label='Todo input' /><button type='submit'>Send</button></form><ul>" + listMarkup + "</ul></div></div></div></body></html>";
     }
 
-    private static String renderTodos() {
-        StringBuilder builder = new StringBuilder();
-        if (TODO_ITEMS.isEmpty()) {
+    private static String renderTodos(List<String> todoItems) {
+        if (todoItems == null || todoItems.isEmpty()) {
             return "<li>No todos yet.</li>";
         }
-        for (String todo : TODO_ITEMS) {
-            builder.append("<li>").append(todo).append("</li>");
+
+        StringBuilder builder = new StringBuilder();
+        for (String todo : todoItems) {
+            builder.append("<li>").append(escapeHtml(todo)).append("</li>");
         }
         return builder.toString();
+    }
+
+    private static String escapeJson(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String escapeHtml(String value) {
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private static byte[] getCachedImage(Path imageFile, Path stateFile) throws IOException {

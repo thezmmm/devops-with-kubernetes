@@ -2,7 +2,7 @@
 
 This application is a simple Java HTTP server for the DevOps with Kubernetes course.
 
-It now serves an HTML page that contains a random image from Lorem Picsum. The image is cached in a persistent volume for 10 minutes, and after expiry the app keeps serving the old image once before fetching a replacement.
+It serves the todo web UI and keeps the random image cache logic. The actual todo items are stored in a separate `todo-backend` service, and this frontend app fetches the todo list from that backend before rendering the page.
 
 ## Run locally
 
