@@ -6,21 +6,30 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TodoBackend {
-    private static final List<String> TODOS = new ArrayList<>();
+    private static final String DB_URL = requireEnv("TODO_DB_URL");
+    private static final String DB_USER = requireEnv("TODO_DB_USER");
+    private static final String DB_PASSWORD = requireEnv("TODO_DB_PASSWORD");
     private static final int MAX_TODO_LENGTH = 140;
-    private static final Pattern TEXT_FIELD_PATTERN = Pattern.compile("\\\"text\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*?)\\\"");
+    private static final Pattern TEXT_FIELD_PATTERN = Pattern.compile("\\\"text\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*)\\\"");
 
     public static void main(String[] args) throws IOException {
         int port = Integer.parseInt(requireEnv("PORT"));
+        initializeDatabase();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/todos", exchange -> {
@@ -38,7 +47,7 @@ public class TodoBackend {
 
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
-        System.out.printf("Todo backend started on port %d%n", port);
+        System.out.printf("Todo backend started on port %d using database %s%n", port, DB_URL);
     }
 
     private static String requireEnv(String key) {
@@ -49,9 +58,37 @@ public class TodoBackend {
         return value;
     }
 
+    private static void initializeDatabase() {
+        for (int attempt = 1; attempt <= 30; attempt++) {
+            try (Connection connection = getConnection();
+                 Statement statement = connection.createStatement()) {
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, text VARCHAR(140) NOT NULL)");
+                return;
+            } catch (SQLException e) {
+                if (attempt == 30) {
+                    throw new IllegalStateException("Failed to initialize the todo database", e);
+                }
+                try {
+                    Thread.sleep(2000L);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting for the database", interruptedException);
+                }
+            }
+        }
+    }
+
+    private static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+    }
+
     private static void handleGet(HttpExchange exchange) throws IOException {
-        String json = buildTodosJson();
-        sendResponse(exchange, 200, "application/json; charset=UTF-8", json);
+        try {
+            String json = buildTodosJson(loadTodos());
+            sendResponse(exchange, 200, "application/json; charset=UTF-8", json);
+        } catch (SQLException e) {
+            sendResponse(exchange, 500, "application/json; charset=UTF-8", "{\"error\":\"Database error\"}");
+        }
     }
 
     private static void handlePost(HttpExchange exchange) throws IOException {
@@ -69,11 +106,32 @@ public class TodoBackend {
             return;
         }
 
-        synchronized (TODOS) {
-            TODOS.add(trimmed);
+        try {
+            insertTodo(trimmed);
+            sendResponse(exchange, 200, "application/json; charset=UTF-8", buildTodosJson(loadTodos()));
+        } catch (SQLException e) {
+            sendResponse(exchange, 500, "application/json; charset=UTF-8", "{\"error\":\"Database error\"}");
         }
+    }
 
-        sendResponse(exchange, 200, "application/json; charset=UTF-8", buildTodosJson());
+    private static void insertTodo(String text) throws SQLException {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO todos (text) VALUES (?)")) {
+            statement.setString(1, text);
+            statement.executeUpdate();
+        }
+    }
+
+    private static List<String> loadTodos() throws SQLException {
+        List<String> todos = new ArrayList<>();
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT text FROM todos ORDER BY id ASC");
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                todos.add(resultSet.getString("text"));
+            }
+        }
+        return todos;
     }
 
     private static String extractText(String rawBody) {
@@ -93,23 +151,21 @@ public class TodoBackend {
         for (String pair : pairs) {
             String[] parts = pair.split("=", 2);
             if (parts.length == 2 && "text".equals(parts[0])) {
-                return java.net.URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+                return URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
             }
         }
 
         return null;
     }
 
-    private static String buildTodosJson() {
+    private static String buildTodosJson(List<String> todos) {
         StringBuilder builder = new StringBuilder();
         builder.append("{\"todos\":[");
-        synchronized (TODOS) {
-            for (int i = 0; i < TODOS.size(); i++) {
-                if (i > 0) {
-                    builder.append(',');
-                }
-                builder.append('"').append(escapeJson(TODOS.get(i))).append('"');
+        for (int i = 0; i < todos.size(); i++) {
+            if (i > 0) {
+                builder.append(',');
             }
+            builder.append('"').append(escapeJson(todos.get(i))).append('"');
         }
         builder.append("]}");
         return builder.toString();

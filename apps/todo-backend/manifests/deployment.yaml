@@ -20,5 +20,20 @@ spec:
           env:
             - name: PORT
               value: "8080"
+            - name: TODO_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-backend-config
+                  key: TODO_DB_URL
+            - name: TODO_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: todo-backend-secret
+                  key: TODO_DB_USER
+            - name: TODO_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: todo-backend-secret
+                  key: TODO_DB_PASSWORD
           ports:
             - containerPort: 8080
