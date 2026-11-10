@@ -7,27 +7,32 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.Executors;
 
 public class PingPong {
+    private static final String DB_URL = requireEnv("PING_PONG_DB_URL");
+    private static final String DB_USER = requireEnv("PING_PONG_DB_USER");
+    private static final String DB_PASSWORD = requireEnv("PING_PONG_DB_PASSWORD");
+
     public static void main(String[] args) throws IOException {
         int port = Integer.parseInt(requireEnv("PORT"));
-        Path countFile = Paths.get(requireEnv("PING_COUNT_FILE_PATH"));
-        Files.createDirectories(countFile.getParent());
+        initializeDatabase();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/", exchange -> handleRequest(exchange, countFile));
-        server.createContext("/pingpong", exchange -> handleRequest(exchange, countFile));
+        server.createContext("/", PingPong::handleRequest);
+        server.createContext("/pingpong", PingPong::handleRequest);
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
-        System.out.printf("Server started in port %d, using %s%n", port, countFile);
+        System.out.printf("Server started in port %d, using database %s%n", port, DB_URL);
     }
 
-    private static void handleRequest(HttpExchange exchange, Path countFile) throws IOException {
+    private static void handleRequest(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
             exchange.getResponseHeaders().set("Allow", "GET");
@@ -35,33 +40,80 @@ public class PingPong {
             return;
         }
 
-        int current = readCount(countFile);
-        int next = current + 1;
-        writeCount(countFile, next);
+        int next;
+        try {
+            next = incrementCounter();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            sendResponse(exchange, 500, "text/plain; charset=UTF-8", "Database error");
+            return;
+        }
 
         String body = "pong " + next;
         System.out.printf("Handled request on %s: %s%n", path, body);
         sendResponse(exchange, 200, "text/plain; charset=UTF-8", body);
     }
 
-    private static synchronized int readCount(Path file) throws IOException {
-        if (Files.exists(file)) {
-            String content = Files.readString(file, StandardCharsets.UTF_8).trim();
-            if (!content.isEmpty()) {
-                return Integer.parseInt(content);
+    private static synchronized int incrementCounter() throws SQLException {
+        try (Connection connection = getConnection()) {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS ping_pong (id INTEGER PRIMARY KEY, count INTEGER NOT NULL)"
+                );
+                statement.executeUpdate(
+                        "INSERT INTO ping_pong (id, count) VALUES (1, 0) ON CONFLICT (id) DO NOTHING"
+                );
             }
+
+            int current;
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "SELECT count FROM ping_pong WHERE id = 1")) {
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        current = resultSet.getInt("count");
+                    } else {
+                        current = 0;
+                    }
+                }
+            }
+
+            int next = current + 1;
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE ping_pong SET count = ? WHERE id = 1")) {
+                update.setInt(1, next);
+                update.executeUpdate();
+            }
+            return next;
         }
-        return 0;
     }
 
-    private static synchronized void writeCount(Path file, int count) throws IOException {
-        Files.writeString(
-                file,
-                Integer.toString(count),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE
-        );
+    private static void initializeDatabase() {
+        for (int attempt = 1; attempt <= 30; attempt++) {
+            try (Connection connection = getConnection();
+                 Statement statement = connection.createStatement()) {
+                statement.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS ping_pong (id INTEGER PRIMARY KEY, count INTEGER NOT NULL)"
+                );
+                statement.executeUpdate(
+                        "INSERT INTO ping_pong (id, count) VALUES (1, 0) ON CONFLICT (id) DO NOTHING"
+                );
+                return;
+            } catch (SQLException e) {
+                if (attempt == 30) {
+                    throw new IllegalStateException("Could not connect to the PostgreSQL database", e);
+                }
+                try {
+                    Thread.sleep(2000L);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting for the database", interruptedException);
+                }
+            }
+        }
+    }
+
+    private static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
     }
 
     private static String requireEnv(String key) {
