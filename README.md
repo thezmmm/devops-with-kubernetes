@@ -95,8 +95,16 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `2.3`
 - [Exercise 2.4: Create the project namespace for project apps](https://github.com/thezmmm/devops-with-kubernetes/tree/2.4/namespaces)
 - Release tag: `2.4`
-- [Exercise 2.5: Add a ConfigMap-backed MESSAGE and file to log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/main/apps/log-output)
-- Release tag: upcoming
+- [Exercise 2.5: Add a ConfigMap-backed MESSAGE and file to log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/2.5/apps/log-output)
+- Release tag: `2.5`
+- [Exercise 2.6: Remove hardcoded runtime configuration and use env-based settings](https://github.com/thezmmm/devops-with-kubernetes/tree/2.6/apps)
+- Release tag: `2.6`
+- [Exercise 2.7: Store the ping-pong counter in PostgreSQL with a StatefulSet](https://github.com/thezmmm/devops-with-kubernetes/tree/2.7/apps/ping-pong)
+- Release tag: `2.7`
+- [Exercise 2.8: Store todos in PostgreSQL and use Secrets/ConfigMaps](https://github.com/thezmmm/devops-with-kubernetes/tree/2.8/apps/todo-backend)
+- Release tag: `2.8`
+- [Exercise 2.9: Create a CronJob that inserts random Wikipedia reading todos](https://github.com/thezmmm/devops-with-kubernetes/tree/2.9/apps/todo-backend)
+- Release tag: `2.9`
 
 ## Notes
 
