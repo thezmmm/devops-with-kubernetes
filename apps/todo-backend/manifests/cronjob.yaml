@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wikipedia-random-todo
+  namespace: project
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: random-todo
+              image: curlimages/curl:8.8.0
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: TODO_BACKEND_URL
+                  value: "http://todo-backend"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  URL=$(curl -fsSL -D - -o /dev/null "https://en.wikipedia.org/wiki/Special:Random" \
+                    | tr -d '\r' \
+                    | awk 'BEGIN{IGNORECASE=1} /^Location:/{print $2; exit}')
+
+                  if [ -z "${URL}" ]; then
+                    URL="https://en.wikipedia.org/wiki/Special:Random"
+                  fi
+
+                  curl -fsS -X POST "${TODO_BACKEND_URL}/todos" \
+                    -H "Content-Type: application/json" \
+                    --data "{\"text\":\"Read ${URL}\"}"

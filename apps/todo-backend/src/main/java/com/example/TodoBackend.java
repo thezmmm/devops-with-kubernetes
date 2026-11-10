@@ -83,6 +83,7 @@ public class TodoBackend {
     }
 
     private static void handleGet(HttpExchange exchange) throws IOException {
+        System.out.printf("Received GET /todos from %s%n", exchange.getRemoteAddress());
         try {
             String json = buildTodosJson(loadTodos());
             sendResponse(exchange, 200, "application/json; charset=UTF-8", json);
@@ -94,18 +95,22 @@ public class TodoBackend {
     private static void handlePost(HttpExchange exchange) throws IOException {
         String rawBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         String text = extractText(rawBody);
+        System.out.printf("Received POST /todos from %s with payload length=%d%n", exchange.getRemoteAddress(), rawBody.length());
 
         if (text == null || text.trim().isEmpty()) {
+            System.out.printf("Rejected empty todo from %s%n", exchange.getRemoteAddress());
             sendResponse(exchange, 400, "application/json; charset=UTF-8", "{\"error\":\"Todo text is required\"}");
             return;
         }
 
         String trimmed = text.trim();
         if (trimmed.length() > MAX_TODO_LENGTH) {
+            System.out.printf("Rejected too-long todo from %s: length=%d, max=%d%n", exchange.getRemoteAddress(), trimmed.length(), MAX_TODO_LENGTH);
             sendResponse(exchange, 400, "application/json; charset=UTF-8", "{\"error\":\"Todo is too long\"}");
             return;
         }
 
+        System.out.printf("Accepted todo from %s: %s%n", exchange.getRemoteAddress(), trimmed);
         try {
             insertTodo(trimmed);
             sendResponse(exchange, 200, "application/json; charset=UTF-8", buildTodosJson(loadTodos()));
