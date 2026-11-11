@@ -26,6 +26,7 @@ public class PingPong {
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", PingPong::handleRequest);
+        server.createContext("/ready", PingPong::handleReady);
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.printf("Server started in port %d, using database %s%n", port, DB_URL);
@@ -57,6 +58,33 @@ public class PingPong {
         String body = "pong " + next;
         System.out.printf("Handled request on %s: %s%n", path, body);
         sendResponse(exchange, 200, "text/plain; charset=UTF-8", body);
+    }
+
+    private static void handleReady(HttpExchange exchange) throws IOException {
+        if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.getResponseHeaders().set("Allow", "GET");
+            sendResponse(exchange, 405, "text/plain; charset=UTF-8", "Method not allowed");
+            return;
+        }
+
+        try {
+            if (checkDatabaseConnectivity()) {
+                sendResponse(exchange, 200, "text/plain; charset=UTF-8", "ready");
+                return;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        sendResponse(exchange, 503, "text/plain; charset=UTF-8", "database unavailable");
+    }
+
+    private static boolean checkDatabaseConnectivity() throws SQLException {
+        try (Connection connection = getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT 1")) {
+            return resultSet.next() && resultSet.getInt(1) == 1;
+        }
     }
 
     private static String normalizePath(String path) {

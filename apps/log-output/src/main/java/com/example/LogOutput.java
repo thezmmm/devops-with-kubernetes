@@ -64,6 +64,14 @@ public class LogOutput {
             writeResponse(exchange, 200, "text/plain; charset=UTF-8", body);
         });
 
+        server.createContext("/ready", exchange -> {
+            if (canReachPingPong(pingPongUrl)) {
+                writeResponse(exchange, 200, "text/plain; charset=UTF-8", "ready");
+            } else {
+                writeResponse(exchange, 503, "text/plain; charset=UTF-8", "ping-pong unavailable");
+            }
+        });
+
         server.createContext("/status", exchange -> {
             String body = buildStatus(logFile, pingPongUrl);
             String json = "{\"message\":\"" + body.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}";
@@ -130,6 +138,24 @@ public class LogOutput {
         }
 
         return 0;
+    }
+
+    private static boolean canReachPingPong(String pingPongUrl) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(pingPongUrl).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return false;
+            }
+            try (InputStream in = connection.getInputStream()) {
+                String response = new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();
+                return response.startsWith("pong ");
+            }
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private static void writeResponse(HttpExchange exchange, int statusCode, String contentType, String body) {
