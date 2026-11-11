@@ -28,9 +28,14 @@ pong 2
 ```bash
 kubectl apply -f .\apps\ping-pong\manifests\deployment.yaml
 kubectl apply -f .\apps\ping-pong\manifests\service.yaml
-kubectl apply -f .\apps\log-output\manifests\ingress.yaml
+kubectl apply -f .\apps\ping-pong\manifests\postgres.yaml
 kubectl get pods
+kubectl get service ping-pong -w
 kubectl logs deployment/ping-pong
 ```
 
-The app is exposed through the same ingress as the log-output application. Requests to `/pingpong` on `log-output.local` are routed to this service.
+In GKE, the `ping-pong` service is exposed through a `LoadBalancer`, which provisions an external IP for the app. After the external IP is assigned, you can curl the service directly:
+
+```bash
+curl http://<EXTERNAL_IP>/pingpong
+```

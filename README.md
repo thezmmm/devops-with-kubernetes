@@ -105,6 +105,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `2.8`
 - [Exercise 2.9: Create a CronJob that inserts random Wikipedia reading todos](https://github.com/thezmmm/devops-with-kubernetes/tree/2.9/apps/todo-backend)
 - Release tag: `2.9`
+- [Exercise 3.1: Deploy Ping-pong to GKE with a LoadBalancer service](https://github.com/thezmmm/devops-with-kubernetes/tree/3.1/apps/ping-pong)
+- Release tag: `3.1`
 
 ## Notes
 
