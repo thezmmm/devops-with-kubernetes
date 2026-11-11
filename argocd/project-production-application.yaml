@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/thezmmm/devops-with-kubernetes.git
-    targetRevision: 4.9
+    targetRevision: "4.9"
     path: apps/project-production/manifests
   destination:
     server: https://kubernetes.default.svc
