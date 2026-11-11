@@ -117,6 +117,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `4.6`
 - [Exercise 4.7: GitOps deployment for log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/4.7/apps)
 - Release tag: `4.7`
+- [Exercise 4.8: GitOps deployment for the project](https://github.com/thezmmm/devops-with-kubernetes/tree/4.8/apps)
+- Release tag: `4.8`
 
 ## Notes
 
