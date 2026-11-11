@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/thezmmm/devops-with-kubernetes.git
+    repoURL: https://github.com/thezmmm/devops-with-kubernetes-config.git
     targetRevision: "4.9"
-    path: apps/project-production/manifests
+    path: project/production
   destination:
     server: https://kubernetes.default.svc
     namespace: production

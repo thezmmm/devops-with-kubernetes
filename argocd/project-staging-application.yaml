@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/thezmmm/devops-with-kubernetes.git
+    repoURL: https://github.com/thezmmm/devops-with-kubernetes-config.git
     targetRevision: main
-    path: apps/project-staging/manifests
+    path: project/staging
   destination:
     server: https://kubernetes.default.svc
     namespace: staging
