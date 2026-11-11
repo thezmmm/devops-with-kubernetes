@@ -2,6 +2,7 @@ package com.example;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import io.nats.client.Nats;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -24,14 +25,18 @@ public class TodoBackend {
     private static final String DB_URL = requireEnv("TODO_DB_URL");
     private static final String DB_USER = requireEnv("TODO_DB_USER");
     private static final String DB_PASSWORD = requireEnv("TODO_DB_PASSWORD");
+    private static final String NATS_URL = System.getenv().getOrDefault("NATS_URL", "nats://nats:4222");
+    private static final String NATS_SUBJECT = System.getenv().getOrDefault("NATS_SUBJECT", "todo.events");
     private static final int MAX_TODO_LENGTH = 140;
     private static final Pattern TEXT_FIELD_PATTERN = Pattern.compile("\\\"text\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*)\\\"");
     private static volatile boolean appHealthy = true;
     private static final Pattern DONE_FIELD_PATTERN = Pattern.compile("\\\"done\\\"\\s*:\\s*(true|false)");
+    private static volatile io.nats.client.Connection natsConnection;
 
     public static void main(String[] args) throws IOException {
         int port = Integer.parseInt(requireEnv("PORT"));
         initializeDatabase();
+        natsConnection = connectNats();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/healthz", exchange -> {
@@ -218,12 +223,54 @@ public class TodoBackend {
         }
     }
 
-    private static void insertTodo(String text) throws SQLException {
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO todos (text, done) VALUES (?, false)")) {
-            statement.setString(1, text);
-            statement.executeUpdate();
+    private static io.nats.client.Connection connectNats() {
+        if (NATS_URL == null || NATS_URL.isBlank()) {
+            return null;
         }
+
+        try {
+            io.nats.client.Connection connection = Nats.connect(NATS_URL);
+            System.out.printf("Connected to NATS at %s%n", NATS_URL);
+            return connection;
+        } catch (Exception e) {
+            System.err.printf("NATS is unavailable, continuing without notifications: %s%n", e.getMessage());
+            return null;
+        }
+    }
+
+    private static void publishTodoEvent(String eventType, int id, String text, boolean done) {
+        if (natsConnection == null) {
+            return;
+        }
+
+        StringBuilder payload = new StringBuilder();
+        payload.append("{\"event\":\"").append(eventType).append("\",\"id\":").append(id);
+        if (text != null && !text.isBlank()) {
+            payload.append(",\"text\":\"").append(escapeJson(text)).append("\"");
+        }
+        payload.append(",\"done\":").append(done).append(",\"user\":\"bot\"}");
+
+        try {
+            natsConnection.publish(NATS_SUBJECT, payload.toString().getBytes(StandardCharsets.UTF_8));
+            natsConnection.flush(java.time.Duration.ofSeconds(5));
+        } catch (Exception e) {
+            System.err.printf("Could not publish %s event for todo %d: %s%n", eventType, id, e.getMessage());
+        }
+    }
+
+    private static int insertTodo(String text) throws SQLException {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO todos (text, done) VALUES (?, false) RETURNING id")) {
+            statement.setString(1, text);
+            try (ResultSet resultSet = statement.executeQuery()) {
+               if (resultSet.next()) {
+                   int id = resultSet.getInt(1);
+                   publishTodoEvent("todo.created", id, text, false);
+                   return id;
+               }
+            }
+        }
+        throw new SQLException("Todo was not created");
     }
 
     private static void markTodoDone(int id, boolean done) throws SQLException {
@@ -233,6 +280,7 @@ public class TodoBackend {
             statement.setInt(2, id);
             statement.executeUpdate();
         }
+        publishTodoEvent("todo.updated", id, null, done);
     }
 
     private static List<TodoItem> loadTodos() throws SQLException {

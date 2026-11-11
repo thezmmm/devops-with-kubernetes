@@ -113,6 +113,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `3.3`
 - [Exercise 3.4: Rewritten routing for ping-pong behind Gateway API](https://github.com/thezmmm/devops-with-kubernetes/tree/3.4/apps)
 - Release tag: `3.4`
+- [Exercise 4.6: NATS broadcaster for todo events](https://github.com/thezmmm/devops-with-kubernetes/tree/4.6/apps)
+- Release tag: `4.6`
 
 ## Notes
 

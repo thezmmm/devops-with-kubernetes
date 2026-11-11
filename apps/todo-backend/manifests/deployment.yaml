@@ -35,6 +35,16 @@ spec:
                 secretKeyRef:
                   name: todo-backend-secret
                   key: TODO_DB_PASSWORD
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-backend-config
+                  key: NATS_URL
+            - name: NATS_SUBJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-backend-config
+                  key: NATS_SUBJECT
           ports:
             - containerPort: 8080
           readinessProbe:

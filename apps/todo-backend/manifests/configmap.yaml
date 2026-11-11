@@ -6,3 +6,5 @@ metadata:
 data:
   TODO_DB_URL: "jdbc:postgresql://todo-db:5432/todos"
   POSTGRES_DB: "todos"
+  NATS_URL: "nats://nats:4222"
+  NATS_SUBJECT: "todo.events"

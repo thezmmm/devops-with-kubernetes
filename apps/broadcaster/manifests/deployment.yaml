@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broadcaster
+  namespace: project
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: broadcaster
+  template:
+    metadata:
+      labels:
+        app: broadcaster
+    spec:
+      containers:
+        - name: broadcaster
+          image: broadcaster:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: broadcaster-config
+                  key: NATS_URL
+            - name: NATS_SUBJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: broadcaster-config
+                  key: NATS_SUBJECT
+            - name: BROADCAST_URL
+              valueFrom:
+                secretKeyRef:
+                  name: broadcaster-secret
+                  key: BROADCAST_URL
+          ports:
+            - containerPort: 8080
