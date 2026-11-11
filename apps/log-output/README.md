@@ -41,4 +41,4 @@ kubectl logs deployment/log-output -c logger
 kubectl logs deployment/log-output -c reader
 ```
 
-The app is exposed through a Gateway API `HTTPRoute` instead of a classic Ingress. `/pingpong` is routed to the `ping-pong` service and `/` is routed to the `log-output` service.
+The app is exposed through a Gateway API `HTTPRoute` instead of a classic Ingress. `/pingpong` is rewritten to `/` before it reaches the `ping-pong` service, so the app itself only needs to serve the root path while the cluster URL stays friendly for clients.

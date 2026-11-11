@@ -26,7 +26,6 @@ public class PingPong {
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", PingPong::handleRequest);
-        server.createContext("/pingpong", PingPong::handleRequest);
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.printf("Server started in port %d, using database %s%n", port, DB_URL);
