@@ -113,6 +113,16 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `3.3`
 - [Exercise 3.4: Rewritten routing for ping-pong behind Gateway API](https://github.com/thezmmm/devops-with-kubernetes/tree/3.4/apps)
 - Release tag: `3.4`
+- [Exercise 4.1: Add readiness probes to ping-pong and log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/4.1/apps)
+- Release tag: `4.1`
+- [Exercise 4.2: Health checks and break app button for the todo project](https://github.com/thezmmm/devops-with-kubernetes/tree/4.2/apps)
+- Release tag: `4.2`
+- [Exercise 4.3: Rollout safety with Argo Rollouts canary analysis](https://github.com/thezmmm/devops-with-kubernetes/tree/4.3/apps)
+- Release tag: `4.3`
+- [Exercise 4.4: Canary rollback guard for ping-pong](https://github.com/thezmmm/devops-with-kubernetes/tree/4.4/apps)
+- Release tag: `4.4`
+- [Exercise 4.5: Todo mark-done feature and styling](https://github.com/thezmmm/devops-with-kubernetes/tree/4.5/apps)
+- Release tag: `4.5`
 - [Exercise 4.6: NATS broadcaster for todo events](https://github.com/thezmmm/devops-with-kubernetes/tree/4.6/apps)
 - Release tag: `4.6`
 - [Exercise 4.7: GitOps deployment for log-output](https://github.com/thezmmm/devops-with-kubernetes/tree/4.7/apps)
@@ -128,8 +138,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 
 - The project uses separate code/config repositories for the final GitOps setup.
 - The shared PVC for the project is created in the `project` namespace so the `todo-server` Deployment can mount `shared-data` correctly.
-
-
+- Exercise 4.1 includes readiness behavior for ping-pong and log-output, and 4.2 adds the break/recover app health flow.
+- Exercise 4.3/4.4/4.5 were finalized on the same canary rollout revision to satisfy the course tag alignment.
 - Always validate Kubernetes manifests before applying them.
 - Prefer small, focused apps for learning new Kubernetes concepts.
 - Keep environment variables and secrets out of version control.
