@@ -39,3 +39,16 @@ In GKE, the `ping-pong` service is exposed through a `LoadBalancer`, which provi
 ```bash
 curl http://<EXTERNAL_IP>/pingpong
 ```
+
+## Canary validation with Argo Rollouts
+
+The `canary.yaml` manifest changes the ping-pong deployment into a Rollout and adds a Prometheus-based `AnalysisTemplate` to guard the update.
+
+- The template watches the sum of namespace CPU usage over a 5 minute window.
+- The threshold is set to `0.8` CPU cores, which is intentionally high enough to avoid blocking normal small updates but low enough to catch a risky spike.
+- If the namespace exceeds this value during the analysis window, the rollout is aborted and the update is reverted.
+
+```bash
+kubectl apply -f .\apps\ping-pong\manifests\canary.yaml
+kubectl argo rollouts get rollout ping-pong -n exercises
+```

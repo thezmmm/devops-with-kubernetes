@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ping-pong-namespace-cpu
+  namespace: exercises
+spec:
+  args:
+    - name: namespace
+      value: exercises
+    - name: threshold
+      value: "0.8"
+  metrics:
+    - name: namespace-cpu-rate
+      interval: 5m
+      failureLimit: 1
+      successCondition: result <= {{args.threshold}}
+      provider:
+        prometheus:
+          address: http://prometheus-server.monitoring.svc.cluster.local
+          query: |
+            sum(rate(container_cpu_usage_seconds_total{namespace="{{args.namespace}}"}[5m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ping-pong
+  namespace: exercises
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: ping-pong
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - analysis:
+            templates:
+              - templateName: ping-pong-namespace-cpu
+            args:
+              - name: namespace
+                value: exercises
+              - name: threshold
+                value: "0.8"
+        - pause:
+            duration: 30s
+      antiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution: {}
+  template:
+    metadata:
+      labels:
+        app: ping-pong
+    spec:
+      containers:
+        - name: ping-pong
+          image: ping-pong:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: "8080"
+            - name: PING_PONG_DB_URL
+              value: "jdbc:postgresql://ping-pong-db:5432/pingpong"
+            - name: PING_PONG_DB_USER
+              value: "pingpong"
+            - name: PING_PONG_DB_PASSWORD
+              value: "pingpong-password"
+          ports:
+            - containerPort: 8080
