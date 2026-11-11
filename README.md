@@ -126,6 +126,10 @@ The course expects a clear repository layout and release tags for exercises. A g
 
 ## Notes
 
+- The project uses separate code/config repositories for the final GitOps setup.
+- The shared PVC for the project is created in the `project` namespace so the `todo-server` Deployment can mount `shared-data` correctly.
+
+
 - Always validate Kubernetes manifests before applying them.
 - Prefer small, focused apps for learning new Kubernetes concepts.
 - Keep environment variables and secrets out of version control.
