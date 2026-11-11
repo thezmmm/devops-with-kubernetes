@@ -33,9 +33,12 @@ http://localhost:8080/
 kubectl apply -f .\apps\log-output\manifests\deployment.yaml
 kubectl apply -f .\apps\log-output\manifests\service.yaml
 kubectl apply -f .\apps\log-output\manifests\ingress.yaml
+kubectl get gatewayclass
+kubectl get gateway
+kubectl get httproute
 kubectl get pods
 kubectl logs deployment/log-output -c logger
 kubectl logs deployment/log-output -c reader
 ```
 
-The shared `emptyDir` volume is mounted into both containers so the writer can append log lines and the reader can read them over HTTP.
+The app is exposed through a Gateway API `HTTPRoute` instead of a classic Ingress. `/pingpong` is routed to the `ping-pong` service and `/` is routed to the `log-output` service.

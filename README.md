@@ -109,6 +109,8 @@ The course expects a clear repository layout and release tags for exercises. A g
 - Release tag: `3.1`
 - [Exercise 3.2: Deploy log-output and ping-pong to GKE via Ingress](https://github.com/thezmmm/devops-with-kubernetes/tree/3.2/apps)
 - Release tag: `3.2`
+- [Exercise 3.3: Replace the Ingress with Gateway API for log-output and ping-pong](https://github.com/thezmmm/devops-with-kubernetes/tree/3.3/apps)
+- Release tag: `3.3`
 
 ## Notes
 
