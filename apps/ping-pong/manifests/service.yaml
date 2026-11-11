@@ -4,6 +4,7 @@ metadata:
   name: ping-pong
   namespace: exercises
 spec:
+  type: ClusterIP
   selector:
     app: ping-pong
   ports:
