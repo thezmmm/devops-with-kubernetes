@@ -40,6 +40,12 @@ public class PingPong {
             return;
         }
 
+        String normalizedPath = normalizePath(path);
+        if (!"/".equals(normalizedPath) && !"/pingpong".equals(normalizedPath)) {
+            sendResponse(exchange, 404, "text/plain; charset=UTF-8", "Not found");
+            return;
+        }
+
         int next;
         try {
             next = incrementCounter();
@@ -52,6 +58,17 @@ public class PingPong {
         String body = "pong " + next;
         System.out.printf("Handled request on %s: %s%n", path, body);
         sendResponse(exchange, 200, "text/plain; charset=UTF-8", body);
+    }
+
+    private static String normalizePath(String path) {
+        if (path == null || path.isBlank()) {
+            return "/";
+        }
+        String normalized = path.trim();
+        if (normalized.length() > 1 && normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized.isEmpty() ? "/" : normalized;
     }
 
     private static synchronized int incrementCounter() throws SQLException {
