@@ -28,7 +28,8 @@ public class TodoServer {
     private static final Duration CACHE_TTL = Duration.ofMinutes(10);
     private static final int MAX_TODO_LENGTH = 140;
     private static final String BACKEND_URL = requireEnv("TODO_BACKEND_URL");
-    private static final Pattern TODO_LIST_PATTERN = Pattern.compile("\"todos\"\\s*:\\s*\\[(.*)\\]");
+    private static final Pattern TODO_LIST_PATTERN = Pattern.compile("\"todos\"\\s*:\\s*(\\[[\\s\\S]*?\\])");
+    private static final Pattern TODO_OBJECT_PATTERN = Pattern.compile("\\{\\s*\\\"id\\\"\\s*:\\s*(\\d+)\\s*,\\s*\\\"text\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*)\\\"\\s*,\\s*\\\"done\\\"\\s*:\\s*(true|false)\\s*\\}");
     private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\\\"((?:\\\\.|[^\\\"])*)\\\"");
     private static volatile boolean appHealthy = true;
 
@@ -42,13 +43,14 @@ public class TodoServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         server.createContext("/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                if ("/break".equals(exchange.getRequestURI().getPath())) {
+                if ("/break".equals(path)) {
                     appHealthy = false;
                     renderHtml(exchange, imageFile, stateFile, fetchTodos(), "App broken. Pod will restart.", 500);
                     return;
                 }
-                if ("/recover".equals(exchange.getRequestURI().getPath())) {
+                if ("/recover".equals(path)) {
                     appHealthy = true;
                     renderHtml(exchange, imageFile, stateFile, fetchTodos(), "App recovered.", 200);
                     return;
@@ -56,8 +58,12 @@ public class TodoServer {
                 handlePost(exchange, imageFile, stateFile);
                 return;
             }
+            if ("PUT".equalsIgnoreCase(exchange.getRequestMethod()) && path != null && path.startsWith("/todos/")) {
+                handlePut(exchange, imageFile, stateFile);
+                return;
+            }
 
-            List<String> todos = fetchTodos();
+            List<TodoItem> todos = fetchTodos();
             String html = buildHtml(imageFile, stateFile, todos, null, 200);
             byte[] body = html.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
@@ -109,6 +115,14 @@ public class TodoServer {
             sendJson(exchange, 200, "{\"status\":\"recovered\"}");
         });
 
+        server.createContext("/todos/", exchange -> {
+            if (!"PUT".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
+                return;
+            }
+            handlePut(exchange, imageFile, stateFile);
+        });
+
         server.createContext("/image", exchange -> {
             byte[] image = getCachedImage(imageFile, stateFile);
             exchange.getResponseHeaders().set("Content-Type", "image/jpeg");
@@ -149,11 +163,29 @@ public class TodoServer {
             return;
         }
 
-        List<String> todos = fetchTodos();
+        List<TodoItem> todos = fetchTodos();
         renderHtml(exchange, imageFile, stateFile, todos, "Added: " + trimmedTodo, 200);
     }
 
-    private static void renderHtml(HttpExchange exchange, Path imageFile, Path stateFile, List<String> todos, String statusMessage, int statusCode) throws IOException {
+    private static void handlePut(HttpExchange exchange, Path imageFile, Path stateFile) throws IOException {
+        String path = exchange.getRequestURI().getPath();
+        String idText = path == null ? "" : path.substring("/todos/".length());
+        if (idText.isBlank()) {
+            renderHtml(exchange, imageFile, stateFile, fetchTodos(), "Invalid todo id.", 400);
+            return;
+        }
+
+        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        boolean done = parseDone(body);
+        if (!markTodoDone(idText, done)) {
+            renderHtml(exchange, imageFile, stateFile, fetchTodos(), "Could not update todo.", 500);
+            return;
+        }
+
+        renderHtml(exchange, imageFile, stateFile, fetchTodos(), done ? "Marked as done." : "Marked as not done.", 200);
+    }
+
+    private static void renderHtml(HttpExchange exchange, Path imageFile, Path stateFile, List<TodoItem> todos, String statusMessage, int statusCode) throws IOException {
         String html = buildHtml(imageFile, stateFile, todos, statusMessage, statusCode);
         byte[] response = html.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
@@ -217,7 +249,28 @@ public class TodoServer {
         }
     }
 
-    private static List<String> fetchTodos() throws IOException {
+    private static boolean markTodoDone(String idText, boolean done) {
+        try {
+            URL url = new URL(BACKEND_URL + "/todos/" + idText);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("PUT");
+            connection.setDoOutput(true);
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            String body = "{\"done\":" + done + "}";
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(body.getBytes(StandardCharsets.UTF_8));
+            }
+
+            return connection.getResponseCode() >= 200 && connection.getResponseCode() < 300;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static List<TodoItem> fetchTodos() throws IOException {
         try {
             URL url = new URL(BACKEND_URL + "/todos");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -238,7 +291,7 @@ public class TodoServer {
         }
     }
 
-    private static List<String> parseTodoList(String json) {
+    private static List<TodoItem> parseTodoList(String json) {
         if (json == null || json.isBlank()) {
             return Collections.emptyList();
         }
@@ -249,13 +302,34 @@ public class TodoServer {
         }
 
         String items = matcher.group(1);
-        List<String> result = new ArrayList<>();
-        Matcher itemMatcher = JSON_STRING_PATTERN.matcher(items);
+        List<TodoItem> result = new ArrayList<>();
+        Matcher itemMatcher = TODO_OBJECT_PATTERN.matcher(items);
         while (itemMatcher.find()) {
-            String value = itemMatcher.group(1).replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
-            result.add(value);
+            int id = Integer.parseInt(itemMatcher.group(1));
+            String value = itemMatcher.group(2).replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
+            boolean done = Boolean.parseBoolean(itemMatcher.group(3));
+            result.add(new TodoItem(id, value, done));
+        }
+
+        if (result.isEmpty()) {
+            Matcher legacyMatcher = JSON_STRING_PATTERN.matcher(items);
+            while (legacyMatcher.find()) {
+                String value = legacyMatcher.group(1).replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
+                result.add(new TodoItem(0, value, false));
+            }
         }
         return result;
+    }
+
+    private static boolean parseDone(String body) {
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+        Matcher matcher = Pattern.compile("\\\"done\\\"\\s*:\\s*(true|false)").matcher(body);
+        if (matcher.find()) {
+            return Boolean.parseBoolean(matcher.group(1));
+        }
+        return false;
     }
 
     private static String parseFormValue(String formData, String key) {
@@ -270,7 +344,7 @@ public class TodoServer {
         return null;
     }
 
-    private static String buildHtml(Path imageFile, Path stateFile, List<String> todoItems, String statusMessage, int statusCode) throws IOException {
+    private static String buildHtml(Path imageFile, Path stateFile, List<TodoItem> todoItems, String statusMessage, int statusCode) throws IOException {
         String bannerClass = statusCode >= 400 ? "error-banner" : "status-banner";
         String safeStatus = statusMessage == null || statusMessage.isBlank() ? "" : "<div class='" + bannerClass + "'>" + escapeHtml(statusMessage) + "</div>";
         String listMarkup = renderTodos(todoItems);
@@ -291,24 +365,32 @@ public class TodoServer {
                 + "button:hover{background:#1d4ed8;}"
                 + ".break-btn{background:#dc2626;margin-top:12px;}"
                 + ".break-btn:hover{background:#b91c1c;}"
+                + ".todo-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #e2e8f0;}"
+                + ".todo-item.done .todo-text{text-decoration:line-through;color:#64748b;}"
+                + ".todo-text{flex:1;word-break:break-word;}"
+                + ".done-button{padding:8px 12px;font-size:0.9rem;background:#16a34a;}"
+                + ".done-button.done{background:#e2e8f0;color:#0f172a;cursor:default;}"
                 + ".status-banner{margin-bottom:16px;padding:10px 12px;border-radius:10px;background:#dcfce7;color:#166534;font-weight:600;border:1px solid #bbf7d0;}"
                 + ".error-banner{margin-bottom:16px;padding:10px 12px;border-radius:10px;background:#fee2e2;color:#991b1b;font-weight:600;border:1px solid #fecaca;}"
-                + "ul{padding-left:20px;margin:0;line-height:1.8;}"
-                + "li{padding:4px 0;color:#334155;}"
+                + "ul{padding-left:0;margin:0;list-style:none;line-height:1.8;}"
                 + "@media (max-width: 760px){.hero{grid-template-columns:1fr;}}"
                 + "</style></head><body><div class='container'><h1>Todo app</h1>"
                 + safeStatus
-                + "<div class='hero'><div class='image-card'><img src='/image' alt='Project image' /></div><div class='card'><form class='todo-form' method='POST' action='/'><input type='text' name='todo' maxlength='140' placeholder='Write a new todo...' aria-label='Todo input' /><button type='submit'>Send</button></form><form method='POST' action='/break'><button class='break-btn' type='submit'>Break app</button></form><ul>" + listMarkup + "</ul></div></div></div></body></html>";
+                + "<div class='hero'><div class='image-card'><img src='/image' alt='Project image' /></div><div class='card'><form class='todo-form' method='POST' action='/'><input type='text' name='todo' maxlength='140' placeholder='Write a new todo...' aria-label='Todo input' /><button type='submit'>Send</button></form><form method='POST' action='/break'><button class='break-btn' type='submit'>Break app</button></form><ul>" + listMarkup + "</ul></div></div></div><script>document.querySelectorAll('.done-button:not(.done)').forEach(button => { button.addEventListener('click', () => { fetch('/todos/' + button.dataset.id, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ done: true }) }).then(() => window.location.reload()); }); });</script></body></html>";
     }
 
-    private static String renderTodos(List<String> todoItems) {
+    private static String renderTodos(List<TodoItem> todoItems) {
         if (todoItems == null || todoItems.isEmpty()) {
             return "<li>No todos yet.</li>";
         }
 
         StringBuilder builder = new StringBuilder();
-        for (String todo : todoItems) {
-            builder.append("<li>").append(escapeHtml(todo)).append("</li>");
+        for (TodoItem todo : todoItems) {
+            boolean done = todo.done;
+            String buttonText = done ? "Done" : "Mark done";
+            String buttonClass = done ? "done-button done" : "done-button";
+            builder.append("<li class='todo-item ").append(done ? "done" : "").append("'><span class='todo-text'>").append(escapeHtml(todo.text)).append("</span><button type='button' class='")
+                    .append(buttonClass).append("' data-id='").append(todo.id).append("'>").append(buttonText).append("</button></li>");
         }
         return builder.toString();
     }
@@ -411,6 +493,18 @@ public class TodoServer {
         private void save(Path file) throws IOException {
             String content = "expiresAt=" + expiresAt + ";graceUsed=" + graceUsed;
             Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        }
+    }
+
+    private static class TodoItem {
+        private final int id;
+        private final String text;
+        private final boolean done;
+
+        private TodoItem(int id, String text, boolean done) {
+            this.id = id;
+            this.text = text;
+            this.done = done;
         }
     }
 }
