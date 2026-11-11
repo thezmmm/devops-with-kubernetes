@@ -21,7 +21,7 @@ spec:
             name: log-output-config
       containers:
         - name: logger
-          image: log-output:latest
+          image: ghcr.io/thezmmm/log-output:latest
           imagePullPolicy: IfNotPresent
           command: ["java", "-jar", "/app/log-output.jar", "writer"]
           env:
@@ -41,7 +41,7 @@ spec:
               mountPath: /etc/config
               readOnly: true
         - name: reader
-          image: log-output:latest
+          image: ghcr.io/thezmmm/log-output:latest
           imagePullPolicy: IfNotPresent
           command: ["java", "-jar", "/app/log-output.jar", "reader"]
           env:
