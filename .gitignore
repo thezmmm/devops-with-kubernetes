@@ -4,6 +4,7 @@
 *.swp
 *.swo
 *.tmp
+*.class
 
 # OS
 .DS_Store

@@ -30,6 +30,7 @@ public class TodoServer {
     private static final String BACKEND_URL = requireEnv("TODO_BACKEND_URL");
     private static final Pattern TODO_LIST_PATTERN = Pattern.compile("\"todos\"\\s*:\\s*\\[(.*)\\]");
     private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\\\"((?:\\\\.|[^\\\"])*)\\\"");
+    private static volatile boolean appHealthy = true;
 
     public static void main(String[] args) throws IOException {
         int port = Integer.parseInt(requireEnv("PORT"));
@@ -42,6 +43,16 @@ public class TodoServer {
 
         server.createContext("/", exchange -> {
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                if ("/break".equals(exchange.getRequestURI().getPath())) {
+                    appHealthy = false;
+                    renderHtml(exchange, imageFile, stateFile, fetchTodos(), "App broken. Pod will restart.", 500);
+                    return;
+                }
+                if ("/recover".equals(exchange.getRequestURI().getPath())) {
+                    appHealthy = true;
+                    renderHtml(exchange, imageFile, stateFile, fetchTodos(), "App recovered.", 200);
+                    return;
+                }
                 handlePost(exchange, imageFile, stateFile);
                 return;
             }
@@ -54,6 +65,48 @@ public class TodoServer {
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(body);
             }
+        });
+
+        server.createContext("/healthz", exchange -> {
+            if (!appHealthy) {
+                sendJson(exchange, 500, "{\"status\":\"unhealthy\"}");
+                return;
+            }
+            if (backendIsReachable()) {
+                sendJson(exchange, 200, "{\"status\":\"ok\"}");
+            } else {
+                sendJson(exchange, 503, "{\"status\":\"backend-unavailable\"}");
+            }
+        });
+
+        server.createContext("/readyz", exchange -> {
+            if (!appHealthy) {
+                sendJson(exchange, 503, "{\"status\":\"not-ready\"}");
+                return;
+            }
+            if (backendIsReachable()) {
+                sendJson(exchange, 200, "{\"status\":\"ready\"}");
+            } else {
+                sendJson(exchange, 503, "{\"status\":\"not-ready\"}");
+            }
+        });
+
+        server.createContext("/break", exchange -> {
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
+                return;
+            }
+            appHealthy = false;
+            sendJson(exchange, 200, "{\"status\":\"broken\"}");
+        });
+
+        server.createContext("/recover", exchange -> {
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
+                return;
+            }
+            appHealthy = true;
+            sendJson(exchange, 200, "{\"status\":\"recovered\"}");
         });
 
         server.createContext("/image", exchange -> {
@@ -142,6 +195,28 @@ public class TodoServer {
         }
     }
 
+    private static boolean backendIsReachable() {
+        try {
+            URL url = new URL(BACKEND_URL + "/readyz");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static void sendJson(HttpExchange exchange, int statusCode, String body) throws IOException {
+        byte[] response = body.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        exchange.sendResponseHeaders(statusCode, response.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response);
+        }
+    }
+
     private static List<String> fetchTodos() throws IOException {
         try {
             URL url = new URL(BACKEND_URL + "/todos");
@@ -214,6 +289,8 @@ public class TodoServer {
                 + "input[type='text']:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.15);}"
                 + "button{background:#2563eb;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:1rem;font-weight:600;cursor:pointer;transition:background 0.2s ease;}"
                 + "button:hover{background:#1d4ed8;}"
+                + ".break-btn{background:#dc2626;margin-top:12px;}"
+                + ".break-btn:hover{background:#b91c1c;}"
                 + ".status-banner{margin-bottom:16px;padding:10px 12px;border-radius:10px;background:#dcfce7;color:#166534;font-weight:600;border:1px solid #bbf7d0;}"
                 + ".error-banner{margin-bottom:16px;padding:10px 12px;border-radius:10px;background:#fee2e2;color:#991b1b;font-weight:600;border:1px solid #fecaca;}"
                 + "ul{padding-left:20px;margin:0;line-height:1.8;}"
@@ -221,7 +298,7 @@ public class TodoServer {
                 + "@media (max-width: 760px){.hero{grid-template-columns:1fr;}}"
                 + "</style></head><body><div class='container'><h1>Todo app</h1>"
                 + safeStatus
-                + "<div class='hero'><div class='image-card'><img src='/image' alt='Project image' /></div><div class='card'><form class='todo-form' method='POST' action='/'><input type='text' name='todo' maxlength='140' placeholder='Write a new todo...' aria-label='Todo input' /><button type='submit'>Send</button></form><ul>" + listMarkup + "</ul></div></div></div></body></html>";
+                + "<div class='hero'><div class='image-card'><img src='/image' alt='Project image' /></div><div class='card'><form class='todo-form' method='POST' action='/'><input type='text' name='todo' maxlength='140' placeholder='Write a new todo...' aria-label='Todo input' /><button type='submit'>Send</button></form><form method='POST' action='/break'><button class='break-btn' type='submit'>Break app</button></form><ul>" + listMarkup + "</ul></div></div></div></body></html>";
     }
 
     private static String renderTodos(List<String> todoItems) {

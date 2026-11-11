@@ -26,12 +26,60 @@ public class TodoBackend {
     private static final String DB_PASSWORD = requireEnv("TODO_DB_PASSWORD");
     private static final int MAX_TODO_LENGTH = 140;
     private static final Pattern TEXT_FIELD_PATTERN = Pattern.compile("\\\"text\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"])*)\\\"");
+    private static volatile boolean appHealthy = true;
 
     public static void main(String[] args) throws IOException {
         int port = Integer.parseInt(requireEnv("PORT"));
         initializeDatabase();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        server.createContext("/healthz", exchange -> {
+            if ("POST".equalsIgnoreCase(exchange.getRequestMethod()) && "/break".equals(exchange.getRequestURI().getPath())) {
+                appHealthy = false;
+                sendResponse(exchange, 200, "application/json; charset=UTF-8", "{\"status\":\"broken\"}");
+                return;
+            }
+            if (!appHealthy) {
+                sendResponse(exchange, 500, "application/json; charset=UTF-8", "{\"status\":\"unhealthy\"}");
+                return;
+            }
+            sendResponse(exchange, 200, "application/json; charset=UTF-8", "{\"status\":\"ok\"}");
+        });
+
+        server.createContext("/readyz", exchange -> {
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "application/json; charset=UTF-8", "{\"error\":\"Method not allowed\"}");
+                return;
+            }
+            try {
+                if (!appHealthy || !checkDatabaseConnectivity()) {
+                    sendResponse(exchange, 503, "application/json; charset=UTF-8", "{\"status\":\"not-ready\"}");
+                    return;
+                }
+                sendResponse(exchange, 200, "application/json; charset=UTF-8", "{\"status\":\"ready\"}");
+            } catch (SQLException e) {
+                sendResponse(exchange, 503, "application/json; charset=UTF-8", "{\"status\":\"not-ready\"}");
+            }
+        });
+
+        server.createContext("/break", exchange -> {
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "application/json; charset=UTF-8", "{\"error\":\"Method not allowed\"}");
+                return;
+            }
+            appHealthy = false;
+            sendResponse(exchange, 200, "application/json; charset=UTF-8", "{\"status\":\"broken\"}");
+        });
+
+        server.createContext("/recover", exchange -> {
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendResponse(exchange, 405, "application/json; charset=UTF-8", "{\"error\":\"Method not allowed\"}");
+                return;
+            }
+            appHealthy = true;
+            sendResponse(exchange, 200, "application/json; charset=UTF-8", "{\"status\":\"recovered\"}");
+        });
+
         server.createContext("/todos", exchange -> {
             String method = exchange.getRequestMethod();
             if ("GET".equalsIgnoreCase(method)) {
@@ -80,6 +128,14 @@ public class TodoBackend {
 
     private static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+    }
+
+    private static boolean checkDatabaseConnectivity() throws SQLException {
+        try (Connection connection = getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT 1")) {
+            return resultSet.next() && resultSet.getInt(1) == 1;
+        }
     }
 
     private static void handleGet(HttpExchange exchange) throws IOException {
