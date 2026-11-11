@@ -17,6 +17,7 @@ public class Broadcaster {
     private static final String NATS_URL = System.getenv().getOrDefault("NATS_URL", "nats://nats:4222");
     private static final String NATS_SUBJECT = System.getenv().getOrDefault("NATS_SUBJECT", "todo.events");
     private static final String BROADCAST_URL = System.getenv().getOrDefault("BROADCAST_URL", System.getenv().getOrDefault("GENERIC_WEBHOOK_URL", ""));
+    private static final String BROADCAST_MODE = System.getenv().getOrDefault("BROADCAST_MODE", "forward");
 
     public static void main(String[] args) throws Exception {
         if (BROADCAST_URL.isBlank()) {
@@ -57,6 +58,11 @@ public class Broadcaster {
         String message = String.format("%s for todo #%d", eventType == null ? "todo event" : eventType, todoId);
         if (todoText != null && !todoText.isBlank()) {
             message = String.format("%s: %s", message, todoText);
+        }
+
+        if ("log-only".equalsIgnoreCase(BROADCAST_MODE) || BROADCAST_URL == null || BROADCAST_URL.isBlank()) {
+            System.out.printf("LOG-ONLY broadcaster: %s%n", message);
+            return;
         }
 
         String payload = "{\"user\":\"bot\",\"message\":\"" + escapeJson(message) + "\"}";

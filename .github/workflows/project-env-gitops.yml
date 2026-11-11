@@ -1,0 +1,66 @@
+name: Project Env GitOps
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+    paths:
+      - 'apps/**'
+      - 'argocd/**'
+      - '.github/workflows/project-env-gitops.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-environments:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure branch/tag target for ArgoCD manifests
+        run: |
+          if [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            echo "STAGING_TARGET=main" >> "$GITHUB_ENV"
+            echo "PRODUCTION_TARGET=main" >> "$GITHUB_ENV"
+          else
+            echo "STAGING_TARGET=main" >> "$GITHUB_ENV"
+            echo "PRODUCTION_TARGET=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Update ArgoCD staging app target
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('argocd/project-staging-application.yaml')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('targetRevision: main', 'targetRevision: ${STAGING_TARGET}')
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Update ArgoCD production app target
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('argocd/project-production-application.yaml')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('targetRevision: 4.9', 'targetRevision: ${PRODUCTION_TARGET}')
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit any manifest changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add argocd/project-staging-application.yaml argocd/project-production-application.yaml
+          git diff --cached --quiet || git commit -m "Update project env targets for ${{ github.ref_name }}"
+
+      - name: Push manifest changes on default branch
+        run: |
+          if [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            git push origin HEAD:${{ github.ref_name }}
+          fi
